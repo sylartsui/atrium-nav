@@ -750,8 +750,9 @@ body.ink-dark .text-halo{text-shadow:0 0 4px rgba(255,255,255,.35),0 1px 2px rgb
   <div class="set-sec">
     <div class="lab">任务栏</div>
     <div class="set-row" style="margin-bottom:10px">
-      <input type="number" id="setIconCount" min="1" max="20" value="8">
-      <span class="hint">图标数量：显示访问量靠前的网址，范围 1–20</span>
+      <input type="number" id="setIconCount" min="1" max="20" value="8" style="flex:0 0 64px;width:64px">
+      <span class="hint" style="min-width:0;text-align:left">图标数量：显示访问量靠前的网址，范围 1–20<br>点 ↻ 生效</span>
+      <button class="zoom-b" id="iconApply" title="按当前输入的数量刷新任务栏图标" style="flex:0 0 auto">↻</button>
     </div>
     <div class="set-row">
       <input type="range" id="setHoverScale" min="1" max="2" step="0.05" value="1.55">
@@ -876,12 +877,19 @@ const PRESET_DATA = [
     ['淘宝', 'https://www.taobao.com'],
     ['京东', 'https://www.jd.com'],
     ['微博', 'https://weibo.com'],
+    ['小红书', 'https://www.xiaohongshu.com'],
+    ['豆瓣', 'https://www.douban.com'],
+    ['网易云音乐', 'https://music.163.com'],
+    ['腾讯视频', 'https://v.qq.com'],
+    ['抖音', 'https://www.douyin.com'],
   ]],
   ['实用工具', [
     ['中国天气', 'https://www.weather.com.cn'],
     ['高德地图', 'https://www.amap.com'],
     ['12306', 'https://www.12306.cn'],
     ['菜鸟教程', 'https://www.runoob.com'],
+    ['百度翻译', 'https://fanyi.baidu.com'],
+    ['网络测速', 'https://www.speedtest.cn'],
   ]],
 ];
 const DEFAULT_GROUPS = PRESET_DATA.map((g, i) => ({
@@ -2177,6 +2185,14 @@ function applyNumInputs(){
   toast('已应用：图标 ' + S.iconCount + ' · 放大 ' + S.hoverScale.toFixed(2) + '× · 缩放 ' + S.zoom + '%');
 }
 document.getElementById('numApply').onclick = applyNumInputs;
+/* 图标数量行的 ↻ 刷新按钮：只按当前输入值立即刷新任务栏图标 */
+document.getElementById('iconApply').onclick = () => {
+  const ic = document.getElementById('setIconCount');
+  S.iconCount = Math.max(1, Math.min(20, Math.round(parseFloat(ic.value)||8)));
+  ic.value = S.iconCount;
+  save(); renderBarIcons();
+  toast('任务栏图标已刷新：' + S.iconCount + ' 个');
+};
 // 三个数字输入框均不做回车执行，只认「确定」按钮
 ['setIconCount','hoverScaleNum','zoomVal'].forEach(id => {
   document.getElementById(id).addEventListener('keydown', e => {
