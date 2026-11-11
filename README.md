@@ -12,45 +12,24 @@
 - **搜索历史**：最多 9 条，支持单条删除、暂停与清空
 - **直达网站**：快捷入口行，可自由增删（默认 DeepSeek）
 - **百度热搜**：实时滚动热榜，悬停放大，明暗主题自适应
-- **网址导航面板**：分组管理、跨分组移动、批量编辑、单条 Logo 自定义（自动抓取 favicon / 上传图片 / 首字兜底）
+- **网址导航面板**：分组管理、跨分组移动、批量编辑、单条 Logo 自定义（自动抓取 favicon / 上传图片 / 首字兜底）、一键清除全部网址
 - **一键导入浏览器收藏夹**：支持 Chrome / Edge 的 `Bookmarks` 文件与导出的 `bookmarks.html`，自动识别浏览器并给出文件路径
 - **任务栏**：访问量 Top-N 图标（数量可调）、悬停波浪放大（倍数可调）、音量/网络信号托盘图标（可开关）
 - **时钟与天气**：秒级时钟 + 实时天气（Open-Meteo，自动定位，多源兜底）
+- **日出日落图示**（v1.41）：悬停时钟弹出天弧图 —— 太阳按当前时刻沿弧线移动，昼蓝 `#3B82F6` / 夜黑 `#0B1026` 渐变背景随晨昏流动，含昼长与日出日落倒计时
+- **网络状态面板**（v1.41）：悬停网络图标查看下行速度、往返延迟、公网 IP、运营商（三级 IP 源兜底）
 - **缩放**：右上角 ±5% 缩放，支持自由输入（50–200%）
 - **壁纸**：内置 4 张液态玻璃壁纸，支持纯色（HEX 直输 + 系统调色板）、上传图片、拖拽/粘贴
-- **明暗自适应**：根据壁纸亮度自动切换文字主题
-- **配置迁移**：一键导出/导入 JSON 配置，跨电脑迁移无忧
+- **配置迁移**：一键导出/导入 JSON，跨电脑搬家不丢数据
 
 ## 🚀 使用
 
-```bash
-git clone https://github.com/<owner>/atrium-nav.git
-# 然后直接双击 index.html，或
-cd atrium-nav && python -m http.server 8000
-```
+1. 下载 `index.html`，双击用 Chrome / Edge 打开即可
+2. 首次打开自带常用网址起步包，可随意增删改分组
+3. 也可点「获取收藏夹网址」一键导入浏览器书签
 
-浏览器打开后：左下角九点按钮悬停呼出网址导航 → 右上角笔形图标进入批量编辑 → 添加网址或一键导入收藏夹。
-
-## 📦 环境要求
-
-无。任何现代浏览器（Chrome / Edge / Firefox）直接打开即可。
-
-> 注：天气、热搜需要联网；`file://` 直开时部分外部请求可能被浏览器 CORS 策略拦截，用本地静态服务打开体验最佳。
-
-## 🧩 结构
-
-```
-atrium-nav/
-├── index.html          # 全部逻辑（HTML + CSS + JS 单文件）
-├── wallpapers/         # 内置壁纸
-└── docs/screenshot.png # 预览图
-```
-
-## 🙏 致谢
-
-- [wynter-yaxley/atrium-desktop](https://github.com/wynter-yaxley/atrium-desktop) —— 本项目的玻璃设计语言、任务栏波浪交互动效与部分实现思路源自该项目，特此感谢！
-- 视觉灵感来自 Apple Liquid Glass；本项目与 Apple、Microsoft 无关。
+在线版：**https://sylartsui.github.io/atrium-nav/**
 
 ## 📄 License
 
-[MIT](LICENSE) © 原作者 [wynter-yaxley](https://github.com/wynter-yaxley) 及本仓库贡献者。
+MIT —— 见 [LICENSE](LICENSE)。基于 [wynter-yaxley/atrium-desktop](https://github.com/wynter-yaxley/atrium-desktop)（MIT）。
