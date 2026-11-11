@@ -1343,6 +1343,41 @@ function topLinks(){
     (S.visits[b.url]||0) - (S.visits[a.url]||0) || order.get(a.url) - order.get(b.url)
   ).slice(0, Math.max(1, Math.min(20, S.iconCount)));
 }
+/* ---------- 图标落盘工具：外网图片转 base64 存数据，离线可用 ---------- */
+function grabIconDataUrl(src){ // 成功返回 PNG dataURL，失败返回 null（调用方降级存原 URL）
+  return new Promise(resolve => {
+    let over = false;
+    const timer = setTimeout(() => { if(!over){ over = true; resolve(null); } }, 8000);
+    const img = new Image();
+    img.crossOrigin = 'anonymous'; // 需要源带 ACAO 头（icon.horse 已带），否则触发 onerror 降级
+    img.onload = () => {
+      if(over) return; over = true; clearTimeout(timer);
+      try{
+        const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+        const x = c.getContext('2d');
+        const s = Math.max(128 / img.width, 128 / img.height);
+        x.drawImage(img, (128 - img.width * s) / 2, (128 - img.height * s) / 2, img.width * s, img.height * s);
+        resolve(c.toDataURL('image/png'));
+      }catch(e){ resolve(null); } // 画布污染等异常 → 降级
+    };
+    img.onerror = () => { if(!over){ over = true; clearTimeout(timer); resolve(null); } };
+    img.src = src;
+  });
+}
+function letterIconDataUrl(name){ // 首字图标生成 PNG 落盘（替代 'letter' 标记的每次渲染生成）
+  const ch = (name || '?')[0] || '?';
+  const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+  const x = c.getContext('2d');
+  const accent = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#0A84FF').trim();
+  x.fillStyle = accent;
+  if(x.roundRect){ x.beginPath(); x.roundRect(0, 0, 64, 64, 15); x.fill(); }
+  else { x.fillRect(0, 0, 64, 64); }
+  x.fillStyle = '#fff';
+  x.font = '700 34px system-ui, "Microsoft YaHei", sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(ch, 32, 35);
+  return c.toDataURL('image/png');
+}
 function faviconEl(link, cls){
   let host = '';
   try{ host = new URL(link.url).hostname; }catch(e){ host = link.url; }
@@ -1759,10 +1794,10 @@ iconPop.addEventListener('click', e => {
     ];
     const trySrc = i => {
       if(i >= srcs.length){
-        // 三个源全部失败（含超时）：降级用名称首字作为图标，并明确提示
-        l.icon = 'letter';
+        // 三个源全部失败（含超时）：生成首字图标 PNG 落盘（一次生成永久使用）
+        l.icon = letterIconDataUrl(l.name);
         save(); renderGroupPanel(); renderBarIcons(); closeIconPop();
-        toast(`「${l.name}」未找到 Logo，已用首字「${(l.name||'?')[0]||'?'}」作为图标`);
+        toast(`「${l.name}」未找到 Logo，已生成首字「${(l.name||'?')[0]||'?'}」图标（本地保存）`);
         return;
       }
       let done = false;
@@ -1773,9 +1808,11 @@ iconPop.addEventListener('click', e => {
       const probe = new Image();
       probe.onload = () => {
         if(done) return; done = true; clearTimeout(timer);
-        l.icon = srcs[i];
-        save(); renderGroupPanel(); renderBarIcons(); closeIconPop();
-        toast('已获取网站 Logo 作为图标');
+        grabIconDataUrl(srcs[i]).then(b64 => { // 转存 base64 落盘；失败降级在线引用
+          l.icon = b64 || srcs[i];
+          save(); renderGroupPanel(); renderBarIcons(); closeIconPop();
+          toast(b64 ? '已获取 Logo（已转存本地，离线可用）' : '已获取网站 Logo（在线引用）');
+        });
       };
       probe.onerror = () => {
         if(done) return; done = true; clearTimeout(timer);
@@ -2473,6 +2510,13 @@ renderEngineBtn(); renderEngineMenu();
 { // 清理旧版自动创建的空「我的收藏夹」分组（非空则保留防误删）
   const i = S.groups.findIndex(x => x.name === '我的收藏夹');
   if(i > -1 && S.groups[i].links.length === 0){ S.groups.splice(i, 1); save(); }
+}
+{ // 首字图标一次性落盘：把旧 'letter' 标记生成为 PNG 存进数据，此后渲染直接用图片，不再每次生成
+  let n = 0;
+  for(const g of S.groups) for(const l of g.links){
+    if(l.icon === 'letter'){ l.icon = letterIconDataUrl(l.name); n++; }
+  }
+  if(n){ save(); console.log('首字图标已落盘:', n + ' 个'); }
 }
 renderBarIcons(); renderGroupPanel();
 renderQuick();
