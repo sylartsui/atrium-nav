@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v1.4</title>
+<title>Atrium · 导航 v1.41</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -492,6 +492,30 @@ body.ink-dark .text-halo{text-shadow:0 0 4px rgba(255,255,255,.35),0 1px 2px rgb
 #wxPanel .r .v{font-variant-numeric:tabular-nums}
 #wxPanel .src{margin-top:12px;font-size:10.5px;color:var(--ink-weak);font-weight:500;cursor:pointer;transition:color .15s}
 #wxPanel .src:hover{color:var(--ink-sub)}
+#sunPanel{
+  position:fixed;bottom:82px;right:calc(max(14px,50% - 420px) + 150px);z-index:160;
+  width:300px;border-radius:26px;padding:16px 18px 14px;display:none;color:var(--ink-main);
+  transition:background .8s ease;
+}
+#sunPanel.open{display:block;animation:pop .36s var(--ease-pop)}
+#sunPanel .sun-head{font-size:13px;font-weight:600;color:rgba(255,255,255,.72);margin-bottom:10px}
+#sunPanel svg{display:block;width:100%}
+#sunPanel .sun-row{display:flex;justify-content:space-between;font-size:12.5px;font-weight:500;margin-top:7px}
+#sunPanel .sun-row .k{color:rgba(255,255,255,.58)}
+#sunPanel .sun-row .v{font-variant-numeric:tabular-nums;color:#fff}
+#sunPanel .sun-src{margin-top:10px;font-size:10.5px;color:rgba(255,255,255,.42);font-weight:500}
+#netPanel{
+  position:fixed;bottom:82px;right:calc(max(14px,50% - 420px) + 236px);z-index:160;
+  width:290px;border-radius:26px;padding:16px 18px 14px;display:none;color:var(--ink-main);
+}
+#netPanel.open{display:block;animation:pop .36s var(--ease-pop)}
+#netPanel .net-head{font-size:13px;font-weight:600;color:var(--ink-sub);margin-bottom:9px;display:flex;align-items:center;gap:7px}
+#netPanel .net-head .dot{width:8px;height:8px;border-radius:50%;background:#30D158;flex:none}
+#netPanel .net-head .dot.off{background:#FF453A}
+#netPanel .r{display:flex;justify-content:space-between;font-size:12.5px;font-weight:500;margin-top:6px}
+#netPanel .r .k{color:var(--ink-weak)}
+#netPanel .r .v{font-variant-numeric:tabular-nums}
+#netPanel .net-src{margin-top:10px;font-size:10.5px;color:var(--ink-weak);font-weight:500}
 /* ---------- 设置弹窗 ---------- */
 #mask{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.3);display:none;backdrop-filter:blur(2px)}
 #mask.open{display:block;animation:fadein .2s}
@@ -652,7 +676,7 @@ body.ink-dark .text-halo{text-shadow:0 0 4px rgba(255,255,255,.35),0 1px 2px rgb
       <rect class="nb" x="17.5" y="5"  width="3" height="14" rx="0.8" fill="currentColor"/>
     </svg>
   </div>
-  <div class="bar-btn" id="clockBtn" title="时间">
+  <div class="bar-btn" id="clockBtn" title="">
     <div class="clk-col">
       <div class="clk-t" id="clkT">--:--:--</div>
       <div class="clk-d" id="clkD">--</div>
@@ -701,6 +725,22 @@ body.ink-dark .text-halo{text-shadow:0 0 4px rgba(255,255,255,.35),0 1px 2px rgb
   </div>
   <div class="rows" id="wxRows"></div>
   <div class="src" id="wxSrc" title="点击立即刷新天气">数据来源 · Open-Meteo</div>
+</div>
+
+<!-- 日出日落面板 -->
+<div id="sunPanel" class="glass">
+  <div class="sun-head">日出与日落</div>
+  <div id="sunViz"></div>
+  <div class="sun-row"><span class="k">昼长</span><span class="v" id="sunLen">--</span></div>
+  <div class="sun-row"><span class="k">当前</span><span class="v" id="sunNow">--</span></div>
+  <div class="sun-src" id="sunSrc">日出日落数据来自天气接口（Open-Meteo）</div>
+</div>
+
+<!-- 网络参数面板 -->
+<div id="netPanel" class="glass">
+  <div class="net-head"><span class="dot" id="netDot"></span>网络状态</div>
+  <div id="netRows"></div>
+  <div class="net-src" id="netSrc">浏览器只能估算网速等级（无法识别有线/Wi-Fi） · IP 来源 ipwho.is / ipip.net</div>
 </div>
 
 <!-- 设置弹窗 -->
@@ -808,7 +848,7 @@ body.ink-dark .text-halo{text-shadow:0 0 4px rgba(255,255,255,.35),0 1px 2px rgb
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '1.4';
+const APP_VER = '1.41';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -826,14 +866,30 @@ const PRESET_ENGINES = [
   {id:'github', name:'GitHub', url:'https://github.com/search?q=%s',       c:'#24292F'},
 ];
 /* 百度「我的常用」预设分组（v1.1 导入，# 表示待补内网地址） */
-const PRESET_DATA = []; // 不内置任何网址，用户自行添加或一键导入浏览器收藏夹
+const PRESET_DATA = [
+  ['常用推荐', [
+    ['百度', 'https://www.baidu.com'],
+    ['GitHub', 'https://github.com'],
+    ['知乎', 'https://www.zhihu.com'],
+    ['哔哩哔哩', 'https://www.bilibili.com'],
+    ['DeepSeek', 'https://chat.deepseek.com'],
+    ['淘宝', 'https://www.taobao.com'],
+    ['京东', 'https://www.jd.com'],
+    ['微博', 'https://weibo.com'],
+  ]],
+  ['实用工具', [
+    ['中国天气', 'https://www.weather.com.cn'],
+    ['高德地图', 'https://www.amap.com'],
+    ['12306', 'https://www.12306.cn'],
+    ['菜鸟教程', 'https://www.runoob.com'],
+  ]],
+];
 const DEFAULT_GROUPS = PRESET_DATA.map((g, i) => ({
   id:'pg'+(i+1), name:g[0],
   links:g[1].map((l, j) => ({id:'pg'+(i+1)+'_'+(j+1), name:l[0], url:l[1]})),
 }));
 let S = loadState();
-/* v1.1 预设迁移：首次加载时用百度「我的常用」分组替换旧分组，旧分组自动备份到 localStorage */
-/* 无预设迁移 */
+/* 无预设迁移：新用户使用内置常用网址起步包 */
 function loadState(){
   try{
     const v = JSON.parse(localStorage.getItem(LS_KEY));
@@ -843,7 +899,7 @@ function loadState(){
 }
 function normalize(v){
   return Object.assign({
-    zoom:100, engineId:'baidu', engines:[], groups:[],
+    zoom:100, engineId:'baidu', engines:[], groups:JSON.parse(JSON.stringify(DEFAULT_GROUPS)),
     iconCount:8, visits:{}, wallpaper:'flow', customWall:null, customWallBright:null, solidColor:'#232733',
     hoverScale:1.55, history:[], histOn:true, presetApplied:'', trayMute:false, showVol:true, showNet:true,
     quick:[{name:'DeepSeek', url:'https://chat.deepseek.com'}],
@@ -2001,6 +2057,89 @@ document.getElementById('wxSrc').addEventListener('click', e => {
 });
 addEventListener('click', e => { if(wxPinned && !wxPanel.contains(e.target) && !document.getElementById('weatherBtn').contains(e.target)){ wxPinned=false; wxPanel.classList.remove('open'); }});
 
+/* ================= 日出日落面板（悬停时钟显示） ================= */
+const sunPanel = document.getElementById('sunPanel');
+let sunTimer = null, sunOpenTick = 0;
+function renderSun(){
+  const viz = document.getElementById('sunViz');
+  const sr = wxData?.sunrise, ss = wxData?.sunset;
+  const toMin = s => { const m = /^(\d{1,2}):(\d{2})/.exec(s || ''); return m ? +m[1]*60 + +m[2] : null; };
+  const a = toMin(sr), b = toMin(ss);
+  const now = new Date();
+  const nm = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
+  const hasData = a != null && b != null && b > a;
+  const t = hasData ? (nm - a) / (b - a) : null; // 0=日出 1=日落
+  const isDay = t != null && t >= 0 && t <= 1;
+  /* ---- 背景渐变：昼 #3B82F6 / 夜 #0B1026，晨昏 ±60 分钟平滑过渡 ---- */
+  const clamp01 = x => Math.max(0, Math.min(1, x));
+  let dayness = hasData
+    ? Math.min(clamp01((nm - (a - 60)) / 120), 1 - clamp01((nm - (b - 60)) / 120))
+    : 0;
+  const hex2rgb = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+  const mix = (h1, h2, k) => { const c1=hex2rgb(h1), c2=hex2rgb(h2); return c1.map((v,i)=>Math.round(v+(c2[i]-v)*k)); };
+  const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
+  const DAY = '#3B82F6', NIGHT = '#0B1026';
+  const base = mix(NIGHT, DAY, dayness);
+  const hi   = mix(NIGHT, DAY, Math.min(1, dayness + .18));   // 顶部略亮
+  const lo   = base.map(v => Math.round(v * .65));           // 底部压暗（base 是 RGB 数组，直接乘系数）
+  sunPanel.style.background = `linear-gradient(168deg, ${rgb(hi)} 0%, ${rgb(base)} 58%, ${rgb(lo)} 100%)`;
+  /* ---- 太阳沿贝塞尔 P0(20,95) → P1(140,-58) → P2(260,95) 移动；夜间允许略出界 ---- */
+  const tc = hasData ? Math.max(-0.22, Math.min(1.22, t)) : 0.5;
+  const bx = x => (1-x)*(1-x)*20 + 2*(1-x)*x*140 + x*x*260;
+  const by = x => (1-x)*(1-x)*95 + 2*(1-x)*x*(-58) + x*x*95;
+  const sx = bx(tc).toFixed(1), sy = by(tc).toFixed(1);
+  const prog = hasData ? clamp01(t) * 100 : 0;
+  // 夜间画个月亮点缀
+  const moon = (!isDay && hasData) ? `<g opacity=".9">
+    <circle cx="228" cy="34" r="11" fill="#FFFFFF" opacity=".14"/>
+    <path d="M232.5 26.2 a9.5 9.5 0 1 0 5.3 12.6 a7.4 7.4 0 1 1 -5.3 -12.6z" fill="#FFFFFF" opacity=".6"/>
+  </g>` : '';
+  const sunMain = `<circle cx="${sx}" cy="${sy}" r="15" fill="#FFD60A" opacity="${isDay ? '.28' : '.12'}"/>
+    <circle cx="${sx}" cy="${sy}" r="6.5" fill="#FFD60A" opacity="${isDay ? '1' : '.45'}"/>`;
+  viz.innerHTML = `<svg viewBox="0 0 280 132">
+    <path d="M20,95 Q140,-58 260,95" fill="none" stroke="#FFFFFF" stroke-width="1.4"
+      stroke-dasharray="3 6" opacity=".38"/>
+    <path d="M20,95 Q140,-58 260,95" fill="none" stroke="#FFFFFF" stroke-width="2.6"
+      stroke-linecap="round" pathLength="100" stroke-dasharray="${prog.toFixed(1)} 100" opacity=".92"/>
+    <line x1="10" y1="95" x2="270" y2="95" stroke="#FFFFFF" stroke-width="1.6" opacity=".45"/>
+    ${moon}${sunMain}
+    <circle cx="20" cy="95" r="3" fill="#FFFFFF" opacity=".9"/>
+    <circle cx="260" cy="95" r="3" fill="#FFFFFF" opacity=".9"/>
+    <text x="20" y="116" font-size="10.5" font-weight="600" fill="#FFFFFF" opacity=".58">日出</text>
+    <text x="20" y="128" font-size="11" font-weight="600" font-variant-numeric="tabular-nums" fill="#FFFFFF">${sr || '--:--'}</text>
+    <text x="260" y="116" font-size="10.5" font-weight="600" fill="#FFFFFF" opacity=".58" text-anchor="end">日落</text>
+    <text x="260" y="128" font-size="11" font-weight="600" font-variant-numeric="tabular-nums" fill="#FFFFFF" text-anchor="end">${ss || '--:--'}</text>
+  </svg>`;
+  // 昼长与当前状态
+  if(hasData){
+    const dl = b - a;
+    document.getElementById('sunLen').textContent = `${Math.floor(dl/60)} 小时 ${dl%60} 分`;
+    let st;
+    if(t < 0) st = `夜间 · 距日出 ${Math.round(a - nm)} 分钟`;
+    else if(t > 1) st = `夜间 · 今日已日落`;
+    else st = `白天 · 距日落 ${Math.round(b - nm)} 分钟`;
+    document.getElementById('sunNow').textContent = st;
+    document.getElementById('sunSrc').textContent = '日出日落数据来自天气接口（Open-Meteo）';
+  }else{
+    document.getElementById('sunLen').textContent = '--';
+    document.getElementById('sunNow').textContent = '暂无日出日落数据（天气未获取）';
+  }
+}
+const clockBtn = document.getElementById('clockBtn');
+clockBtn.addEventListener('mouseenter', () => {
+  renderSun();
+  sunTimer = setTimeout(() => sunPanel.classList.add('open'), 180);
+});
+clockBtn.addEventListener('mouseleave', () => {
+  clearTimeout(sunTimer);
+  setTimeout(() => { if(!sunPanel.matches(':hover')) sunPanel.classList.remove('open'); }, 250);
+});
+sunPanel.addEventListener('mouseenter', () => clearTimeout(sunTimer));
+sunPanel.addEventListener('mouseleave', () => {
+  setTimeout(() => { if(!clockBtn.matches(':hover')) sunPanel.classList.remove('open'); }, 250);
+});
+setInterval(() => { if(sunPanel.classList.contains('open')) renderSun(); }, 30000);
+
 /* ================= 设置弹窗 ================= */
 const mask = document.getElementById('mask');
 const settings = document.getElementById('settings');
@@ -2239,7 +2378,8 @@ function updateNetIcon(){
     if(on && c && c.downlink) bars = c.downlink < 1 ? 1 : c.downlink < 5 ? 2 : c.downlink < 15 ? 3 : 4;
   }catch(e){}
   trayNet.querySelectorAll('.nb').forEach((el,i) => { el.style.opacity = on ? (i < bars ? 1 : .25) : .18; });
-  trayNet.title = on ? '网络：已连接' : '网络：离线';
+  trayNet.title = ''; // 悬停改为弹出网络参数面板
+  try{ if(netPanel.classList.contains('open')) renderNet(); }catch(e){} // netPanel 声明前调用时忽略（TDZ）
 }
 window.addEventListener('online', updateNetIcon);
 window.addEventListener('offline', updateNetIcon);
@@ -2247,6 +2387,68 @@ if(navigator.connection && navigator.connection.addEventListener){
   navigator.connection.addEventListener('change', updateNetIcon);
 }
 updateNetIcon();
+
+/* ================= 网络参数面板（悬停网络图标显示） ================= */
+const netPanel = document.getElementById('netPanel');
+let netTimer = null, netIpBusy = false;
+function netInfo(){
+  const on = navigator.onLine;
+  let c = null;
+  try{ c = navigator.connection || null; }catch(e){}
+  return {
+    on,
+    eff: c && c.effectiveType ? c.effectiveType.toUpperCase() : null,
+    down: c && c.downlink != null ? c.downlink : null,
+    rtt: c && c.rtt != null ? c.rtt : null,
+    save: c && c.saveData ? true : false
+  };
+}
+function renderNet(){
+  const n = netInfo();
+  document.getElementById('netDot').classList.toggle('off', !n.on);
+  // 公网 IP / ISP（缓存 atrium_netcache，10 分钟）
+  let ip = '--', isp = '--';
+  try{
+    const c = JSON.parse(localStorage.getItem('atrium_netcache') || 'null');
+    if(c && Date.now() - c.t < 10*60*1000){ ip = c.d.ip || '--'; isp = c.d.isp || '--'; }
+    else if(n.on && !netIpBusy){
+      netIpBusy = true;
+      // 三级源：ipwho.is（IP+运营商）→ myip.ipip.net（IP+运营商，国内直连）→ api.ip.sb（仅 IP）
+      fetchJson('https://ipwho.is/?fields=ip,connection', 6000)
+        .then(j => ({ ip: j.ip || '--', isp: (j.connection && j.connection.isp) || '--' }))
+        .catch(() => fetchJson('https://myip.ipip.net/json', 6000).then(j => ({ ip: (j.data && j.data.ip) || '--', isp: (j.data && j.data.location && j.data.location[4]) || '--' })))
+        .catch(() => fetchJson('https://api.ip.sb/jsonip', 6000).then(j => ({ ip: j.ip || '--', isp: '--' })))
+        .then(d => { localStorage.setItem('atrium_netcache', JSON.stringify({ t: Date.now(), d })); })
+        .catch(() => {})
+        .finally(() => { netIpBusy = false; if(netPanel.classList.contains('open')) renderNet(); });
+    }
+  }catch(e){}
+  const fmt = v => v == null ? '--' : v;
+  const EFF_CN = { 'SLOW-2G': '很慢（2G级）', '2G': '慢（2G级）', '3G': '一般（3G级）', '4G': '快（4G级）' };
+  const effTxt = n.eff ? (EFF_CN[n.eff] || n.eff) : '--';
+  document.getElementById('netRows').innerHTML = `
+    <div class="r"><span class="k">连接状态</span><span class="v">${n.on ? '已连接' : '离线'}</span></div>
+    <div class="r"><span class="k">网络质量（估算）</span><span class="v">${effTxt}</span></div>
+    <div class="r"><span class="k">下行速度</span><span class="v">${n.down == null ? '--' : n.down + ' Mbps'}</span></div>
+    <div class="r"><span class="k">往返延迟</span><span class="v">${n.rtt == null ? '--' : n.rtt + ' ms'}</span></div>
+    <div class="r"><span class="k">省流模式</span><span class="v">${n.save ? '开启' : '关闭'}</span></div>
+    <div class="r"><span class="k">公网 IP</span><span class="v">${ip}</span></div>
+    <div class="r"><span class="k">运营商</span><span class="v">${isp}</span></div>`;
+}
+const netBtnHover = document.getElementById('trayNet');
+netBtnHover.addEventListener('mouseenter', () => {
+  renderNet();
+  netTimer = setTimeout(() => netPanel.classList.add('open'), 180);
+});
+netBtnHover.addEventListener('mouseleave', () => {
+  clearTimeout(netTimer);
+  setTimeout(() => { if(!netPanel.matches(':hover')) netPanel.classList.remove('open'); }, 250);
+});
+netPanel.addEventListener('mouseenter', () => clearTimeout(netTimer));
+netPanel.addEventListener('mouseleave', () => {
+  setTimeout(() => { if(!netBtnHover.matches(':hover')) netPanel.classList.remove('open'); }, 250);
+});
+setInterval(() => { if(netPanel.classList.contains('open')) renderNet(); }, 5000);
 /* 托盘图标显隐开关 */
 document.getElementById('tglVol').addEventListener('change', e => { S.showVol = e.target.checked; save(); applyTray(); });
 document.getElementById('tglNet').addEventListener('change', e => { S.showNet = e.target.checked; save(); applyTray(); });
