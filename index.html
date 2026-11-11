@@ -1264,6 +1264,7 @@ function saveHotCache(){
 }
 async function fetchHot(){
   const srcs = [
+    'https://60s.b23.run/v2/baidu/hot',
     'https://60s-api.viki.moe/v2/baidu/hot',
     'https://60s.viki.moe/v2/baidu/hot',
   ];
@@ -1306,7 +1307,8 @@ function renderHot(fromCache){
   if(!hotItems.length){
     bar.classList.add('open');
     track.innerHTML = '';
-    bar.querySelector('.win').innerHTML = `<span class="fail">热搜获取失败，点击重试（预览环境网络受限，双击本地文件打开即正常）</span>`;
+    const tip = location.protocol === 'file:' ? '热搜获取失败，点击重试（预览环境网络受限，双击本地文件打开即正常）' : '热搜获取失败，点击重试';
+    bar.querySelector('.win').innerHTML = `<span class="fail">${tip}</span>`;
     bar.querySelector('.win').onclick = () => { bar.querySelector('.win').onclick = null; fetchHot(); };
     return;
   }
@@ -2074,7 +2076,9 @@ function renderWeather(){
   document.getElementById('wxSrc').textContent = wxData
     ? `数据来源 · ${wxErr.src} · 定位：${wxErr.loc} · 点击重试`
     : `天气不可用 · ${wxErr.src} · 点击重试` +
-      (String(wxErr.src).includes('Failed to fetch') || String(wxErr.src).includes('网络') ? '（预览环境网络受限，双击本地文件打开即正常）' : '');
+      (String(wxErr.src).includes('Failed to fetch') || String(wxErr.src).includes('网络')
+        ? (location.protocol === 'file:' ? '（预览环境网络受限，双击本地文件打开即正常）' : '（网络波动，稍后自动重试）')
+        : '');
 }
 const wxPanel = document.getElementById('wxPanel');
 let wxTimer = null, wxPinned = false;
