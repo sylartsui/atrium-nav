@@ -24,6 +24,16 @@
 - **壁纸**：内置 4 张液态玻璃壁纸，支持纯色（HEX 直输 + 系统调色板）、上传图片、拖拽/粘贴
 - **配置迁移**：一键导出/导入 JSON，跨电脑搬家不丢数据
 
+## 🎬 功能演示
+
+| 视频 | 内容 |
+| --- | --- |
+| [01 网址导航面板](docs/videos/01-nav-panel.webm) | 任务栏波浪放大、音量托盘、分组面板与图标悬停 |
+| [02 设置与 ↻ 应用](docs/videos/02-settings-apply.webm) | 图标数量 6 ↔ 12 一键切换，即点即生效 |
+| [03 日出日落与网络](docs/videos/03-clock-sun-net.webm) | 悬停时钟弹出天弧渐变图、悬停网络图标看实时参数 |
+| [04 一键获取 Logo](docs/videos/04-icon-autoload.webm) | 编辑态 → 齿轮 → 自动抓取 Logo 并转存本地 |
+| [05 搜索引擎切换](docs/videos/05-search-engine.webm) | 引擎菜单切换百度 / Bing / 哔哩哔哩，输入搜索词 |
+
 ## 🚀 使用
 
 1. 下载 `index.html`，双击用 Chrome / Edge 打开即可
