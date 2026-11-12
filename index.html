@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v1.5</title>
+<title>Atrium · 导航 v1.5.1</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -2224,6 +2224,7 @@ const settings = document.getElementById('settings');
 let settingsFromGroup = false;
 function openSettings(){
   document.getElementById('verTag').textContent = 'Atrium 导航 v' + APP_VER;
+  document.title = 'Atrium · 导航 v' + APP_VER;
   document.getElementById('setIconCount').value = S.iconCount;
   document.getElementById('setHoverScale').value = S.hoverScale;
   document.getElementById('hoverScaleNum').value = S.hoverScale.toFixed(2);
