@@ -797,6 +797,13 @@ body.ink-dark .text-halo{text-shadow:0 0 4px rgba(255,255,255,.35),0 1px 2px rgb
     </div>
   </div>
   <div class="set-sec">
+    <div class="lab">访问量</div>
+    <div class="set-row">
+      <label class="tgl"><input type="checkbox" id="tglVisits"><span class="tgl-track"></span></label>
+      <span class="hint">网址导航里显示访问量角标</span>
+    </div>
+  </div>
+  <div class="set-sec">
     <div class="lab">直达网站</div>
     <div id="quickSetList"></div>
     <div class="set-row" style="margin-top:6px">
@@ -1523,7 +1530,7 @@ function renderGroupPanel(){
       ${g.links.length ? `<div class="grp-grid">${g.links.map(l => `
         <button class="link-tile" data-url="${esc(l.url)}">
           ${faviconEl(l, 'lt')}
-          <span class="nm">${esc(l.name)}${S.visits[l.url] ? `<span class="v">${S.visits[l.url]}</span>` : ''}</span>
+          <span class="nm">${esc(l.name)}${S.showVisits === true && S.visits[l.url] ? `<span class="v">${S.visits[l.url]}</span>` : ''}</span>
         </button>`).join('')}</div>` : `<div class="empty-tip" style="padding:12px 0;font-size:12px">分组为空，点右上角笔形图标进入编辑添加网址</div>`}
     </div>`;
   }).join('');
@@ -2237,6 +2244,7 @@ function openSettings(){
   document.getElementById('zoomVal').value = S.zoom;
   document.getElementById('tglVol').checked = S.showVol !== false;
   document.getElementById('tglNet').checked = S.showNet !== false;
+  document.getElementById('tglVisits').checked = S.showVisits === true;
   renderQuickSet();
   renderWallThumbs();
   mask.classList.add('open'); settings.classList.add('open');
@@ -2313,7 +2321,7 @@ function exportConfig(){
     visits:S.visits||{}, zoom:S.zoom,
     wallpaper:S.wallpaper, customWall:S.customWall||null, solidColor:S.solidColor||'#232733',
     hoverScale:S.hoverScale||1.55,
-    trayMute:!!S.trayMute, showVol:S.showVol !== false, showNet:S.showNet !== false,
+    trayMute:!!S.trayMute, showVol:S.showVol !== false, showNet:S.showNet !== false, showVisits:S.showVisits === true,
     history:S.history||[], histOn:S.histOn !== false,
     quick:S.quick||[],
   };
@@ -2343,7 +2351,7 @@ function importConfig(file){
         hoverScale:(typeof j.hoverScale === 'number' ? Math.min(2, Math.max(1, j.hoverScale)) : 1.55),
         history:Array.isArray(j.history) ? j.history : [],
         histOn:j.histOn !== false,
-        trayMute:!!j.trayMute, showVol:j.showVol !== false, showNet:j.showNet !== false,
+        trayMute:!!j.trayMute, showVol:j.showVol !== false, showNet:j.showNet !== false, showVisits:j.showVisits === true,
         quick:Array.isArray(j.quick) ? j.quick : [{name:'DeepSeek', url:'https://chat.deepseek.com'}],
       });
       memoryWall = null;
@@ -2358,6 +2366,7 @@ function importConfig(file){
       applyTray();
       document.getElementById('tglVol').checked = S.showVol !== false;
       document.getElementById('tglNet').checked = S.showNet !== false;
+  document.getElementById('tglVisits').checked = S.showVisits === true;
       toast('配置已导入');
     }catch(e){
       toast('导入失败：' + (e.message === '格式不符' ? '不是本导航页导出的配置文件' : '文件解析出错'));
@@ -2560,6 +2569,7 @@ netPanel.addEventListener('mouseleave', () => {
 setInterval(() => { if(netPanel.classList.contains('open')) renderNet(); }, 5000);
 /* 托盘图标显隐开关 */
 document.getElementById('tglVol').addEventListener('change', e => { S.showVol = e.target.checked; save(); applyTray(); });
+document.getElementById('tglVisits').addEventListener('change', e => { S.showVisits = e.target.checked; save(); renderGroupPanel(); toast(e.target.checked ? '访问量角标已显示' : '访问量角标已隐藏'); });
 document.getElementById('tglNet').addEventListener('change', e => { S.showNet = e.target.checked; save(); applyTray(); });
 
 renderEngineBtn(); renderEngineMenu();
