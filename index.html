@@ -541,7 +541,10 @@ body.ink-dark .text-halo{text-shadow:0 0 4px rgba(255,255,255,.35),0 1px 2px rgb
   width:80px;height:34px;border:none;border-radius:17px;outline:none;text-align:center;
   background:var(--hover-fill);color:var(--ink-main);font-size:14px;font-weight:600;font-family:inherit;
   font-variant-numeric:tabular-nums;
+  appearance:textfield;-moz-appearance:textfield;
 }
+.set-row input[type=number]::-webkit-outer-spin-button,
+.set-row input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .set-row input[type=text]{
   flex:1;height:34px;border:none;border-radius:17px;outline:none;padding:0 12px;min-width:0;
   background:var(--hover-fill);color:var(--ink-main);font-size:13px;font-family:inherit;
@@ -756,13 +759,17 @@ body.ink-dark .text-halo{text-shadow:0 0 4px rgba(255,255,255,.35),0 1px 2px rgb
   <div class="set-sec">
     <div class="lab">任务栏</div>
     <div class="set-row" style="margin-bottom:10px">
+      <button class="zoom-b" id="icMinus" title="图标数量减 1">−</button>
       <input type="number" id="setIconCount" min="1" max="20" value="8" style="flex:0 0 64px;width:64px">
+      <button class="zoom-b" id="icPlus" title="图标数量加 1">+</button>
       <span class="hint" style="min-width:0;text-align:left">图标数量：显示访问量靠前的网址，范围 1–20<br>点 ↻ 生效</span>
       <button class="zoom-b" id="iconApply" title="按当前输入的数量刷新任务栏图标" style="flex:0 0 auto">↻</button>
     </div>
     <div class="set-row">
       <input type="range" id="setHoverScale" min="1" max="2" step="0.05" value="1.55">
+      <button class="zoom-b" id="hsMinus" title="减小 0.05">−</button>
       <input id="hoverScaleNum" type="number" min="1" max="2" step="0.05" value="1.55" title="悬停放大倍数，可直接输入（1.00–2.00）" style="width:64px;flex:0 0 64px">
+      <button class="zoom-b" id="hsPlus" title="增大 0.05">+</button>
       <span class="hint" style="min-width:0">×</span>
     </div>
     <span class="hint" style="margin-top:6px;display:block;font-size:11.5px;color:var(--ink-weak);font-weight:500">
@@ -2269,6 +2276,23 @@ document.getElementById('iconApply').onclick = () => {
     if(e.key === 'Enter') e.preventDefault();
   });
 });
+/* 图标数量行 ± 微调：只改输入框数值，仍按 ↻ 生效 */
+function icStep(d){
+  const ic = document.getElementById('setIconCount');
+  ic.value = Math.max(1, Math.min(20, (parseInt(ic.value,10)||8) + d));
+}
+document.getElementById('icMinus').onclick = () => icStep(-1);
+document.getElementById('icPlus').onclick  = () => icStep(1);
+/* 悬停放大行 ± 微调：步进 0.05，立即生效（与滑条一致） */
+function hsStep(d){
+  const hs = document.getElementById('hoverScaleNum');
+  const nv = Math.round(Math.min(2, Math.max(1, (parseFloat(hs.value)||S.hoverScale) + d)) * 20) / 20;
+  hs.value = nv.toFixed(2);
+  document.getElementById('setHoverScale').value = nv;
+  S.hoverScale = nv; applyHoverScale(); save();
+}
+document.getElementById('hsMinus').onclick = () => hsStep(-0.05);
+document.getElementById('hsPlus').onclick  = () => hsStep(0.05);
 document.getElementById('setHoverScale').addEventListener('input', e => {
   S.hoverScale = Math.round(parseFloat(e.target.value) * 20) / 20; // 步进 0.05
   document.getElementById('hoverScaleNum').value = S.hoverScale.toFixed(2);
