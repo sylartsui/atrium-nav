@@ -1341,17 +1341,29 @@ function renderHot(fromCache){
     window.open(u || 'https://www.baidu.com/s?wd=' + encodeURIComponent(hi.dataset.w), '_blank');
   };
   bar.classList.add('open');
-  hotHalf = track.scrollWidth / 2; // 两份内容 → 一份的宽度即循环周期
-  hotBase = hotHalf / Math.max(24, hotItems.length * 3.2) / 1000; // 基础速度 px/ms（与旧 48s 跑马灯同节奏）
+  hotMeasure(); // 精确测量循环周期（方案A：用两份内容的偏移差）
   bindHotDrag();
 }
 
 /* ---------- 热搜拖拽 + 惯性阻尼（JS 驱动跑马灯） ---------- */
-let hotX = 0, hotV = 0, hotHalf = 0, hotBase = 0;      // 位置 / 惯性速度(px/ms) / 半宽 / 基础速度
+let hotX = 0, hotV = 0, hotHalf = 0, hotBase = 0;      // 位置 / 惯性速度(px/ms) / 周期 / 基础速度
 let hotDragging = false, hotHover = false, hotDragged = false, hotMoved = 0;
 let hotLastT = 0;
 const hotWinEl = () => document.querySelector('#hotBar .win');
 const hotTrackEl = () => document.getElementById('hotTrack');
+/* 循环周期 = 第二份第一条与第一条的 offsetLeft 之差。
+   注意：不能用 scrollWidth/2 —— flex 的 gap 使其恰好少半个间隔(15px)，
+   回卷时整条内容会跳 15px（表现为新一圈第1~3条处的周期性卡顿）。
+   本测量依赖「两份内容平铺拼接」的结构，若改为多份或包 wrapper 需同步调整。 */
+function hotMeasure(){
+  const t = hotTrackEl();
+  if(!t || !hotItems.length) return;
+  const kids = t.children;
+  hotHalf = kids.length > hotItems.length
+    ? kids[hotItems.length].offsetLeft - kids[0].offsetLeft
+    : t.scrollWidth / 2;
+  hotBase = hotHalf / Math.max(24, hotItems.length * 3.2) / 1000;
+}
 function bindHotDrag(){
   const win = hotWinEl();
   if(!win || win.dataset.dragBound) return;
@@ -1415,9 +1427,14 @@ requestAnimationFrame(function hotTick(now){
   requestAnimationFrame(hotTick);
 });
 window.addEventListener('resize', () => {
-  const t = hotTrackEl();
-  if(t && hotItems.length){ hotHalf = t.scrollWidth / 2; hotBase = hotHalf / Math.max(24, hotItems.length * 3.2) / 1000; }
+  if(hotItems.length) hotMeasure();
 });
+/* 点击「🔥百度热搜」标签 → 新标签页打开百度热搜榜 */
+(function(){
+  const lab = document.querySelector('#hotBar .lab');
+  lab.style.cursor = 'pointer';
+  lab.onclick = () => window.open('https://top.baidu.com/board?tab=realtime', '_blank');
+})();
 
 /* ================= 访问量与任务栏图标 ================= */
 function allLinks(){
