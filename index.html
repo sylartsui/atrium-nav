@@ -2345,9 +2345,11 @@ function renderSun(){
     }
     document.getElementById('sunLen').textContent = dl != null
       ? `${Math.floor(dl/3600000)} 小时 ${Math.round(dl%3600000/60000)} 分` : '--';
+    const remain = next.t - now;
+    const rh = Math.floor(remain/3600000), rm = Math.round(remain%3600000/60000);
     const st = isDay
-      ? `白天 · 距日落 ${Math.max(1, Math.round((next.t - now)/60000))} 分钟`
-      : `夜间 · 下次日出 ${fmtT(next.t)}`;
+      ? `白天 · 距日落还有 ${rh} 小时 ${rm} 分`
+      : `夜间 · 距日出还有 ${rh} 小时 ${rm} 分`;
     document.getElementById('sunNow').textContent = st;
     document.getElementById('sunSrc').textContent = '日出日落数据来自天气接口（Open-Meteo）';
   }else{
