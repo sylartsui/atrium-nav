@@ -2787,6 +2787,33 @@ sunPanel.addEventListener('mouseleave', () => {
 });
 setInterval(() => { if(sunPanel.classList.contains('open')) renderSun(); }, 30000);
 
+/* ================= 网址导航橡皮筋 ================= */
+/* 滚到顶/底再继续滚时，内容随滚轮拉伸一点，松手回弹（iOS 式 overscroll 手感） */
+(function(){
+  const gb = document.getElementById('grpBody');
+  let rbY = 0, rbTimer = null;
+  const RB_MAX = 17; // 最大拉伸像素（原 26，缩短 1/3）
+  const rbSet = (y, spring) => {
+    Array.from(gb.children).forEach(el => {
+      el.style.transition = spring ? 'transform .55s cubic-bezier(.2,1.35,.4,1)' : '';
+      el.style.transform = y ? `translateY(${y}px)` : '';
+    });
+  };
+  const rbRelease = () => { if(rbY){ rbY = 0; rbSet(0, true); } };
+  gb.addEventListener('wheel', e => {
+    // 仅在已到边界还继续同向滚动时拉伸
+    const atTop = gb.scrollTop <= 0 && e.deltaY < 0;
+    const atBottom = gb.scrollTop + gb.clientHeight >= gb.scrollHeight - 1 && e.deltaY > 0;
+    if(!atTop && !atBottom){ if(rbY) rbRelease(); return; }
+    clearTimeout(rbTimer);
+    // 阻尼积累：越拉越紧；方向与滚动意图相反（到顶上滚→内容下移露出顶部空隙，到底下滚→内容上移）
+    const step = -Math.sign(e.deltaY) * Math.min(7, Math.abs(e.deltaY) * .25);
+    rbY = Math.max(-RB_MAX, Math.min(RB_MAX, rbY + step));
+    rbSet(rbY, false);
+    rbTimer = setTimeout(rbRelease, 150);
+  }, { passive: true });
+})();
+
 /* ================= 设置弹窗 ================= */
 const mask = document.getElementById('mask');
 const settings = document.getElementById('settings');
