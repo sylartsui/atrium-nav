@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v1.5.4</title>
+<title>Atrium · 导航 v1.5.5</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -442,10 +442,46 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 }
 .manage-row input:focus{background:var(--hover-fill)}
 .manage-row .mv{
-  height:28px;border:none;border-radius:14px;outline:none;flex:0 0 78px;cursor:pointer;padding:0 6px;
+  height:28px;border:none;border-radius:14px;outline:none;flex:0 0 78px;cursor:pointer;padding:0 8px;
   background:var(--hover-fill);color:var(--ink-main);font-size:12px;font-weight:500;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:4px;transition:background .15s;
 }
-.manage-row .mv option{color:#111;background:#fff}
+.manage-row .mv:hover{background:var(--press-fill)}
+.manage-row .mv .arr{font-size:9px;opacity:.65}
+/* 移动分组弹层：玻璃风格，替代原生 select */
+#movePop{position:fixed;z-index:400;width:152px;max-height:280px;overflow:hidden;border-radius:16px;padding:6px;display:none;color:var(--ink-main)}
+/* 内层滚动容器：滚动条只在弹窗内框内滚动，上下不越过圆角、不超出弹窗 */
+#movePop .mp-scroll{max-height:268px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;border-radius:10px;overscroll-behavior:contain}
+#movePop .mp-scroll::-webkit-scrollbar{width:8px}
+#movePop .mp-scroll::-webkit-scrollbar-track{background:transparent}
+#movePop .mp-scroll::-webkit-scrollbar-thumb{background:var(--ink-sep);border-radius:4px}
+#movePop .mp-scroll::-webkit-scrollbar-thumb:hover{background:var(--ink-weak)}
+#movePop.open{display:block;animation:pop .25s var(--ease-pop)}
+#movePop .mi{flex:none;
+  display:flex;align-items:center;gap:8px;width:100%;height:32px;padding:0 10px;border:none;border-radius:10px;
+  background:transparent;color:var(--ink-main);font-size:12.5px;font-weight:500;font-family:inherit;
+  cursor:pointer;text-align:left;transition:background .15s;
+}
+#movePop .mi:hover{background:var(--hover-fill)}
+#movePop .mi .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#movePop .mi .cnt{font-size:10.5px;color:var(--ink-weak);flex:none}
+#movePop .empty{padding:8px 10px;font-size:11.5px;color:var(--ink-weak)}
+/* 分组排序弹窗：玻璃卡片，拖动列表项调整分组顺序 */
+#sortPop{position:fixed;z-index:420;width:246px;max-height:330px;overflow:hidden;border-radius:16px;padding:6px;display:none;color:var(--ink-main)}
+#sortPop.open{display:block;animation:pop .25s var(--ease-pop)}
+#sortPop .sp-top{font-size:11px;font-weight:500;color:var(--ink-weak);padding:6px 10px 8px;display:flex;align-items:center;gap:5px}
+#sortPop .sp-scroll{max-height:262px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;border-radius:10px;overscroll-behavior:contain}
+#sortPop .sp-scroll::-webkit-scrollbar{width:8px}
+#sortPop .sp-scroll::-webkit-scrollbar-track{background:transparent}
+#sortPop .sp-scroll::-webkit-scrollbar-thumb{background:var(--ink-sep);border-radius:4px}
+#sortPop .sp-scroll::-webkit-scrollbar-thumb:hover{background:var(--ink-weak)}
+#sortPop .si{flex:none;display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border-radius:10px;
+  color:var(--ink-main);font-size:12.5px;font-weight:500;cursor:grab;user-select:none;transition:background .15s}
+#sortPop .si:hover{background:var(--hover-fill)}
+#sortPop .si.dragging{background:var(--press-fill);cursor:grabbing;box-shadow:0 2px 10px rgba(0,0,0,.28)}
+#sortPop .si .grip{font-size:12px;color:var(--ink-weak);flex:none;letter-spacing:-1px}
+#sortPop .si .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#sortPop .si .cnt{font-size:10.5px;color:var(--ink-weak);flex:none}
 .manage-row .url{color:var(--ink-weak);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
 .manage-row .del{
   width:26px;height:26px;border-radius:13px;border:none;flex:none;cursor:pointer;
@@ -485,8 +521,22 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 .panel-foot .clear-big{width:34px;height:34px;flex:0 0 34px;padding:0}
 .panel-foot .clear-big svg{width:20px;height:20px;flex:none}
 .panel-foot .clear-big:hover{background:var(--press-fill);color:#FF453A}
+/* 底部：组内拖动排序开关 */
+#dragSortBtn{display:inline-flex;align-items:center;gap:7px;padding:0 13px;color:var(--ink-sub);transition:background .15s,color .15s}
+#dragSortBtn .knob{position:relative;width:28px;height:16px;border-radius:8px;background:var(--press-fill);transition:background .2s;flex:0 0 28px}
+#dragSortBtn .knob::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.28);transition:transform .2s var(--ease-pop)}
+#dragSortBtn.on{color:var(--ink-main)}
+#dragSortBtn.on .knob{background:var(--accent)}
+#dragSortBtn.on .knob::after{transform:translateX(12px)}
+/* 组内拖动排序：把手与拖动中的行 */
+.manage-row .lgrip{flex:none;font-size:12px;color:var(--ink-weak);letter-spacing:-1px;cursor:grab;user-select:none;padding:0 1px}
+.manage-row .lgrip:hover{color:var(--ink-main)}
+.manage-row.dragging{background:var(--press-fill);box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:grabbing}
+.manage-row.dragging .lgrip{cursor:grabbing;color:var(--ink-main)}
 /* 收藏夹导入按钮 + 清除按钮：仅在批量编辑状态（点击笔图标后）显示 */
 #grpPanel:not(.editing) .fav-foot-btn,
+#grpPanel:not(.editing) #dragSortBtn,
+#grpPanel:not(.editing) #sortGrpBtn,
 #grpPanel:not(.editing) .panel-foot .clear-big{display:none}
 .empty-tip{padding:28px 0;text-align:center;color:var(--ink-weak);font-size:13px;font-weight:500}
 /* ---------- 天气弹出 ---------- */
@@ -728,6 +778,8 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
   <div class="panel-foot">
     <button id="favGetBtn" class="fav-foot-btn" title="从浏览器收藏夹文件（Bookmarks / bookmarks.html）一键导入网址">⭐ 获取收藏夹网址</button>
     <button id="addGroupBtn">＋ 新建分组</button>
+    <button id="dragSortBtn" title="打开后可在分组内拖动网址调整顺序">拖动排序<span class="knob"></span></button>
+    <button id="sortGrpBtn" data-sortgrp="1" title="拖动调整分组顺序">⇅ 分组排序</button>
     <button class="head-iconbtn clear-big" id="clearLinksBtn" title="一键清除所有分组里的全部网址（分组保留）">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8,9H16V19H8V9M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z"/></svg>
     </button>
@@ -868,6 +920,11 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 <div id="toast" class="glass text-halo"></div>
 <input type="file" id="iconInput" accept="image/*" style="display:none">
 <div id="iconPop" class="glass"></div>
+<div id="movePop" class="glass"></div>
+<div id="sortPop" class="glass">
+  <div class="sp-top"><span>⠿</span>按住拖动调整分组顺序</div>
+  <div class="sp-scroll"></div>
+</div>
 
 <!-- 收藏夹导入引导弹窗 -->
 <div id="favPop" class="glass">
@@ -887,7 +944,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '1.5.4';
+const APP_VER = '1.5.5';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -948,7 +1005,7 @@ function normalize(v){
     zoom:100, engineId:'baidu', engines:[], groups:JSON.parse(JSON.stringify(DEFAULT_GROUPS)),
     iconCount:8, visits:{}, wallpaper:'flow', customWall:null, customWallBright:null, solidColor:'#232733',
     hoverScale:1.55, history:[], histOn:true, presetApplied:'', trayMute:false, showVol:true, showNet:true,
-    showVisits:false, hotBoards:['baidu'],
+    showVisits:false, dragSort:false, hotBoards:['baidu'],
     quick:[{name:'DeepSeek', url:'https://chat.deepseek.com'}],
   }, v);
   if(!Array.isArray(s.hotBoards) || !s.hotBoards.length) s.hotBoards = ['baidu'];
@@ -1695,8 +1752,29 @@ const grpBtn = document.getElementById('grpBtn');
 let grpOpen = false, grpPinned = false, editingGroup = null, editingAll = false;
 let hoverTimer = null, closeTimer = null;
 
+function collectAllEdits(){ // 面板重渲染/关闭前：把编辑区行内未保存的名称/网址/组名收进数据，防止误删丢改动
+  document.querySelectorAll('#grpBody .grp-manage').forEach(el => {
+    const g = S.groups.find(x => x.id === el.dataset.g);
+    if(!g) return;
+    const gn = el.querySelector('.g-name');
+    if(gn && gn.value.trim()) g.name = gn.value.trim();
+    el.querySelectorAll('[data-l]').forEach(row => {
+      const l = g.links.find(x => x.id === row.dataset.l);
+      if(!l) return;
+      const nv = row.querySelector('.l-name').value.trim();
+      if(nv) l.name = nv;
+      let u = row.querySelector('.l-url').value.trim();
+      if(u){
+        if(!/^https?:\/\//i.test(u)) u = 'https://' + u;
+        l.url = u;
+      }
+    });
+  });
+}
 function renderGroupPanel(){
+  collectAllEdits();
   grpPanel.classList.toggle('editing', editingAll);
+  if(!editingAll && !editingGroup){ const _sp = document.getElementById('sortPop'); if(_sp) _sp.classList.remove('open'); }
   const body = document.getElementById('grpBody');
   if(!S.groups.length){
     body.innerHTML = `<div class="empty-tip">还没有分组，点下方「新建分组」开始</div>`;
@@ -1707,21 +1785,21 @@ function renderGroupPanel(){
       return `<div class="grp-manage" data-g="${g.id}">
         <div class="manage-row">
           <span class="lt" style="background:var(--ink-weak)">组</span>
-          <input class="g-name" value="${esc(g.name)}" placeholder="分组名称">
+          <input class="g-name" value="${esc(g.name)}" placeholder="分组名称（最多8个字）" maxlength="8" title="分组名称最多 8 个字">
+          <button class="del" data-gup="1" title="分组上移">↑</button>
+          <button class="del" data-gdown="1" title="分组下移">↓</button>
           <button class="del" data-delgroup="1" title="删除整个分组">🗑</button>
         </div>
         ${g.links.map(l => `
           <div class="manage-row" data-l="${l.id}">
+            ${S.dragSort === true ? '<span class="lgrip" title="按住拖动调整本组顺序">⠿</span>' : ''}
             ${faviconEl(l, 'lt')}
             <input class="l-name" value="${esc(l.name)}" placeholder="名称" style="flex:0 0 96px">
             <button class="icon-gear" data-iconmenu="${l.id}" title="自定义图标：一键获取 Logo / 上传图片">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14,12.94a7.07,7.07 0 0 0 .06-.94 7.07,7.07 0 0 0-.06-.94l2.11-1.64a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49,1a7.3,7.3 0 0 0-1.63-.94l-.38-2.65A.5.5 0 0 0 13.77,2h-4a.5.5 0 0 0-.5.42l-.38,2.65a7.3,7.3 0 0 0-1.63.94l-2.49-1a.5.5 0 0 0-.61.22l-2,3.46a.5.5 0 0 0 .12.64L4.4,11.06a7.07,7.07 0 0 0-.06.94 7.07,7.07 0 0 0 .06.94L2.29,14.58a.5.5 0 0 0-.12.64l2,3.46a.5.5 0 0 0 .61.22l2.49-1a7.3,7.3 0 0 0 1.63.94l.38,2.65a.5.5 0 0 0 .5.42h4a.5.5 0 0 0 .5-.42l.38-2.65a7.3,7.3 0 0 0 1.63-.94l2.49,1a.5.5 0 0 0 .61-.22l2-3.46a.5.5 0 0 0-.12-.64ZM11.75,15.5a3.5,3.5 0 1 1 3.5-3.5A3.5,3.5 0 0 1 11.75,15.5Z"/></svg>
             </button>
             <input class="l-url" value="${esc(l.url)}" placeholder="网址">
-            <select class="mv" data-move="${l.id}" title="移动到其他分组">
-              <option value="" hidden>移到…</option>
-              ${S.groups.filter(x => x.id !== g.id).map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}
-            </select>
+            <button class="mv" data-movebtn="${l.id}" title="移动到其他分组">移到<span class="arr">▼</span></button>
             <button class="del" data-up="${l.id}" title="上移">↑</button>
             <button class="del" data-down="${l.id}" title="下移">↓</button>
             <button class="del" data-dellink="${l.id}" title="删除">✕</button>
@@ -1754,11 +1832,17 @@ function renderGroupPanel(){
   }).join('');
 }
 document.getElementById('grpBody').addEventListener('click', e => {
+  e.stopPropagation(); // 行内操作会重渲染并移除被点元素；若继续冒泡，document 级外点检测会误判（contains 失效）导致面板闪退
+  // 面板内的点击被 stopPropagation 拦下、到不了 document，所以浮层（移到 / 图标）的「点外部关闭」要在这里补做
+  if(movePop.classList.contains('open') && !e.target.closest('[data-movebtn]')) closeMovePop();
+  if(iconPop.classList.contains('open') && !e.target.closest('[data-iconmenu]')) closeIconPop();
   const sec = e.target.closest('[data-g]');
   const gid = sec?.dataset.g;
   // 自定义图标入口（管理模式下的图标按钮）
   const icBtn = e.target.closest('[data-iconmenu]');
   if(icBtn){ openIconPop(icBtn, icBtn.dataset.iconmenu); return; }
+  const mvOpenBtn = e.target.closest('[data-movebtn]');
+  if(mvOpenBtn){ openMovePop(mvOpenBtn, mvOpenBtn.dataset.movebtn); return; }
   // 网址在分组内排序（上移 / 下移）
   const mvBtn = e.target.closest('[data-up]') || e.target.closest('[data-down]');
   if(mvBtn){
@@ -1769,7 +1853,7 @@ document.getElementById('grpBody').addEventListener('click', e => {
     const j = i + (mvBtn.dataset.up ? -1 : 1);
     if(i > -1 && j >= 0 && j < g.links.length){
       [g.links[i], g.links[j]] = [g.links[j], g.links[i]];
-      save(); renderGroupPanel(); renderBarIcons();
+      renderGroupPanel(); save(); renderBarIcons();
     }
     return;
   }
@@ -1782,6 +1866,19 @@ document.getElementById('grpBody').addEventListener('click', e => {
   }
   // 编辑 / 删除 / 添加 / 保存
   const g = S.groups.find(x => x.id === gid);
+  if(g && (e.target.closest('[data-gup]') || e.target.closest('[data-gdown]'))){
+    const up = !!e.target.closest('[data-gup]');
+    const gi = S.groups.findIndex(x => x.id === g.id);
+    const gj = gi + (up ? -1 : 1);
+    if(gi > -1 && gj >= 0 && gj < S.groups.length){
+      collectAllEdits();
+      [S.groups[gi], S.groups[gj]] = [S.groups[gj], S.groups[gi]];
+      renderGroupPanel(); save(); renderBarIcons();
+    }else{
+      toast(up ? '已经是第一个分组' : '已经是最后一个分组');
+    }
+    return;
+  }
   if(e.target.closest('[data-fetchall]')){
     const fa = e.target.closest('[data-fetchall]');
     if(!g || fa.disabled) return;
@@ -1793,7 +1890,7 @@ document.getElementById('grpBody').addEventListener('click', e => {
     let i = 0, okN = 0, letterN = 0;
     const next = () => {
       if(i >= targets.length){
-        save(); renderGroupPanel(); renderBarIcons();
+        renderGroupPanel(); save(); renderBarIcons();
         toast(`Logo 批量获取完成：成功 ${okN} 个，未获取已用首字图标 ${letterN} 个`);
         return;
       }
@@ -1816,21 +1913,21 @@ document.getElementById('grpBody').addEventListener('click', e => {
         if(u) l.url = u;
       }
     });
-    editingGroup = null; save(); renderGroupPanel(); renderBarIcons();
+    editingGroup = null; renderGroupPanel(); save(); renderBarIcons();
     toast('已保存');
     return;
   }
   if(g && e.target.closest('[data-delgroup]')){
     if(confirm(`删除分组「${g.name}」及其全部 ${g.links.length} 个网址？`)){
       S.groups = S.groups.filter(x => x.id !== g.id);
-      editingGroup = null; save(); renderGroupPanel(); renderBarIcons();
+      editingGroup = null; renderGroupPanel(); save(); renderBarIcons();
     }
     return;
   }
   if(g && e.target.closest('[data-dellink]')){
     const id = e.target.closest('[data-dellink]').dataset.dellink;
     g.links = g.links.filter(x => x.id !== id);
-    save(); renderGroupPanel(); renderBarIcons();
+    renderGroupPanel(); save(); renderBarIcons();
     return;
   }
   if(g && e.target.closest('[data-addlink]')){
@@ -1840,29 +1937,176 @@ document.getElementById('grpBody').addEventListener('click', e => {
     if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
     if(!name){ try{ name = new URL(url).hostname.replace(/^www\./,''); }catch(e){ name = url; } }
     g.links.push({id:uid(), name, url});
-    save(); renderGroupPanel(); renderBarIcons();
+    renderGroupPanel(); save(); renderBarIcons();
     return;
   }
 });
-/* 网址跨分组移动（管理模式下拉选择） */
-document.getElementById('grpBody').addEventListener('change', e => {
-  const mv = e.target.closest('[data-move]');
-  if(!mv || !mv.value) return;
-  const fromId = mv.closest('[data-g]')?.dataset.g;
-  const gFrom = S.groups.find(x => x.id === fromId);
-  const gTo = S.groups.find(x => x.id === mv.value);
-  const i = gFrom?.links.findIndex(l => l.id === mv.dataset.move) ?? -1;
-  if(gFrom && gTo && i > -1){
-    const [l] = gFrom.links.splice(i, 1);
-    gTo.links.push(l);
-    save(); renderGroupPanel(); renderBarIcons();
-    toast(`已把「${l.name}」移到「${gTo.name}」`);
+/* 网址跨分组移动：玻璃弹层菜单（替代原生 select，风格与整体统一） */
+const movePop = document.getElementById('movePop');
+let moveCtx = null; // {g, l}
+function openMovePop(anchor, lid){
+  let hit = null;
+  for(const gg of S.groups){
+    const f = gg.links.find(x => x.id === lid);
+    if(f){ hit = {g: gg, l: f}; break; }
   }
+  if(!hit) return;
+  moveCtx = hit;
+  const others = S.groups.filter(x => x.id !== hit.g.id);
+  const body = others.length
+    ? others.map(x => `<button class="mi" data-mvto="${x.id}"><span class="nm">${esc(x.name)}</span><span class="cnt">${x.links.length}</span></button>`).join('')
+    : '<div class="empty">没有其他分组可移动</div>';
+  movePop.innerHTML = '<div class="mp-scroll">' + body + '</div>';
+  movePop.classList.add('open');
+  const r = anchor.getBoundingClientRect();
+  const pw = 152;
+  movePop.style.left = Math.max(8, Math.min(r.left - 60, innerWidth - pw - 8)) + 'px';
+  movePop.style.top = Math.min(r.bottom + 6, innerHeight - 300) + 'px';
+}
+function closeMovePop(){ movePop.classList.remove('open'); moveCtx = null; }
+movePop.addEventListener('click', e => {
+  e.stopPropagation();
+  const b = e.target.closest('[data-mvto]');
+  if(!b || !moveCtx) return;
+  const gTo = S.groups.find(x => x.id === b.dataset.mvto);
+  const gFrom = moveCtx.g, l = moveCtx.l;
+  if(gTo && gTo !== gFrom){
+    collectAllEdits();
+    const i = gFrom.links.findIndex(x => x.id === l.id);
+    if(i > -1) gFrom.links.splice(i, 1);
+    gTo.links.push(l);
+    closeMovePop();
+    renderGroupPanel(); save(); renderBarIcons();
+    toast(`已把「${l.name}」移到「${gTo.name}」`);
+  }else{ closeMovePop(); }
+});
+addEventListener('click', e => {
+  if(movePop.classList.contains('open') && !movePop.contains(e.target) && !e.target.closest('[data-movebtn]')) closeMovePop();
+});
+
+/* ---------- 分组排序弹窗（拖动调序） ---------- */
+const sortPop = document.getElementById('sortPop');
+const sortList = sortPop.querySelector('.sp-scroll');
+let sortDrag = null;
+function openSortPop(anchor){
+  collectAllEdits();
+  sortList.innerHTML = S.groups.map(g =>
+    `<div class="si" data-sg="${g.id}"><span class="grip">⠿</span><span class="nm">${esc(g.name)}</span><span class="cnt">${g.links.length}</span></div>`).join('');
+  sortPop.classList.add('open');
+  const r = anchor.getBoundingClientRect();
+  const pw = 246, ph = sortPop.offsetHeight || 330;
+  sortPop.style.left = Math.max(8, Math.min(r.left + r.width / 2 - pw / 2, innerWidth - pw - 8)) + 'px';
+  let top = r.top - ph - 8;
+  if(top < 8) top = Math.min(r.bottom + 8, innerHeight - ph - 8);
+  sortPop.style.top = Math.max(8, top) + 'px';
+}
+function closeSortPop(){ sortPop.classList.remove('open'); if(sortDrag) sortDrag.classList.remove('dragging'); sortDrag = null; }
+
+/* ---------- 组内拖动排序开关 ---------- */
+const dragSortBtn = document.getElementById('dragSortBtn');
+function renderDragSortBtn(){ dragSortBtn.classList.toggle('on', S.dragSort === true); }
+dragSortBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  S.dragSort = S.dragSort !== true;
+  save(); renderDragSortBtn();
+  if(editingAll || editingGroup) renderGroupPanel();
+  toast(S.dragSort ? '已开启：按住行首 ⠿ 拖动即可排序' : '已关闭：组内拖动排序不可用');
+});
+let linkDrag = null;
+document.getElementById('grpBody').addEventListener('pointerdown', e => {
+  if(S.dragSort !== true) return;
+  const row = e.target.closest('.manage-row[data-l]');
+  if(!row || !row.closest('.grp-manage')) return;
+  if(e.target.closest('input,button') && !e.target.closest('.lgrip')) return;
+  e.preventDefault();
+  linkDrag = row;
+  row.classList.add('dragging');
+  try{ row.setPointerCapture(e.pointerId); }catch(_){ }
+});
+addEventListener('pointermove', e => {
+  if(!linkDrag) return;
+  const box = linkDrag.parentElement;
+  if(!box) return;
+  const rows = [...box.querySelectorAll('.manage-row[data-l]')].filter(x => x !== linkDrag);
+  for(const x of rows){
+    const r = x.getBoundingClientRect();
+    if(e.clientY >= r.top && e.clientY <= r.bottom){
+      const after = e.clientY > r.top + r.height / 2;
+      const ref = after ? x.nextSibling : x;
+      if(ref !== linkDrag) box.insertBefore(linkDrag, ref);
+      break;
+    }
+  }
+  const body = document.getElementById('grpBody');
+  const bb = body.getBoundingClientRect();
+  if(e.clientY < bb.top + 26) body.scrollTop -= 12;
+  else if(e.clientY > bb.bottom - 26) body.scrollTop += 12;
+});
+function endLinkDrag(){
+  if(!linkDrag) return;
+  const row = linkDrag, box = row.parentElement;
+  linkDrag = null;
+  row.classList.remove('dragging');
+  if(!box) return;
+  const g = S.groups.find(x => x.id === box.dataset.g);
+  if(!g) return;
+  const order = [...box.querySelectorAll('.manage-row[data-l]')].map(x => x.dataset.l);
+  const map = new Map(g.links.map(l => [l.id, l]));
+  const next = order.map(id => map.get(id)).filter(Boolean);
+  if(next.length !== g.links.length) return;
+  const changed = next.some((l, i) => l.id !== g.links[i].id);
+  g.links = next;
+  collectAllEdits(); save();
+  if(changed){ renderGroupPanel(); toast('本组网址顺序已更新'); }
+}
+addEventListener('pointerup', endLinkDrag);
+addEventListener('pointercancel', endLinkDrag);
+renderDragSortBtn();
+document.getElementById('sortGrpBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  if(sortPop.classList.contains('open')) closeSortPop(); else openSortPop(e.currentTarget);
+});
+sortPop.addEventListener('click', e => e.stopPropagation());
+sortList.addEventListener('pointerdown', e => {
+  const it = e.target.closest('.si');
+  if(!it) return;
+  e.preventDefault();
+  sortDrag = it;
+  it.classList.add('dragging');
+});
+addEventListener('pointermove', e => {
+  if(!sortDrag) return;
+  const items = [...sortList.querySelectorAll('.si')].filter(x => x !== sortDrag);
+  for(const x of items){
+    const r = x.getBoundingClientRect();
+    if(e.clientY >= r.top && e.clientY <= r.bottom){
+      const after = e.clientY > r.top + r.height / 2;
+      if(sortDrag.nextSibling !== (after ? x.nextSibling : x)) sortList.insertBefore(sortDrag, after ? x.nextSibling : x);
+      break;
+    }
+  }
+  const sr = sortList.getBoundingClientRect();
+  if(e.clientY < sr.top + 26) sortList.scrollTop -= 10;
+  else if(e.clientY > sr.bottom - 26) sortList.scrollTop += 10;
+});
+addEventListener('pointerup', () => {
+  if(!sortDrag) return;
+  sortDrag.classList.remove('dragging');
+  sortDrag = null;
+  const order = [...sortList.querySelectorAll('.si')].map(x => x.dataset.sg);
+  const map = new Map(S.groups.map(g => [g.id, g]));
+  const next = order.map(id => map.get(id)).filter(Boolean);
+  const changed = next.length === S.groups.length && next.some((g, i) => g.id !== S.groups[i].id);
+  S.groups = next;
+  save();
+  if(changed){ renderGroupPanel(); renderBarIcons(); toast('分组顺序已更新'); }
+});
+addEventListener('click', e => {
+  if(sortPop.classList.contains('open') && !sortPop.contains(e.target) && !e.target.closest('[data-sortgrp]')) closeSortPop();
 });
 document.getElementById('addGroupBtn').onclick = () => {
-  const name = prompt('新分组名称：', '新分组');
-  if(!name) return;
-  const g = {id:uid(), name:name.trim()||'新分组', links:[]};
+  const name = (prompt('新分组名称（最多 8 个字）：', '新分组') || '').trim().slice(0, 8);
+  const g = {id:uid(), name:name, links:[]};
   S.groups.push(g);
   editingGroup = g.id;
   save(); renderGroupPanel();
@@ -1886,7 +2130,7 @@ document.getElementById('clearLinksBtn').onclick = e => {
   if(confirm(`将清除全部 ${S.groups.length} 个分组里的共 ${total} 个网址（分组本身保留），此操作不可恢复。\n\n确定清除吗？`)){
     S.groups.forEach(g => g.links = []);
     S.visits = {};
-    save(); renderGroupPanel(); renderBarIcons();
+    renderGroupPanel(); save(); renderBarIcons();
     grpPinned = true; clearTimeout(closeTimer);
     toast('已清除全部网址');
   }
@@ -1991,7 +2235,7 @@ document.getElementById('favFileInput').addEventListener('change', e => {
       g.links.push({id:uid(), name:x.name.slice(0, 40), url:x.url});
       added++;
     });
-    save(); renderGroupPanel(); renderBarIcons();
+    renderGroupPanel(); save(); renderBarIcons();
     grpPinned = true; clearTimeout(closeTimer);
     toast(`收藏夹导入完成：${g.name} 分组共 ${added} 个网址（已放到最前面）`);
   };
@@ -2001,6 +2245,7 @@ function setGrpPanel(open, pin){
   grpOpen = open; grpPinned = !!pin;
   grpPanel.classList.toggle('open', open);
   if(open){ editingGroup = null; renderGroupPanel(); }
+  else if(editingGroup || editingAll){ collectAllEdits(); save(); } // 编辑中面板被关闭：先收好未保存的修改再关，不丢数据
 }
 grpBtn.addEventListener('mouseenter', () => {
   clearTimeout(closeTimer);
@@ -2022,6 +2267,7 @@ grpPanel.addEventListener('mouseenter', () => clearTimeout(closeTimer));
 addEventListener('click', e => {
   if(grpOpen && !grpPanel.contains(e.target) && !grpBtn.contains(e.target)
      && !iconPop.contains(e.target)
+     && !sortPop.contains(e.target)
      && !document.getElementById('settings').contains(e.target)) setGrpPanel(false);
 });
 
@@ -2071,7 +2317,7 @@ iconPop.addEventListener('click', e => {
       if(i >= srcs.length){
         // 三个源全部失败（含超时）：生成首字图标 PNG 落盘（一次生成永久使用）
         l.icon = letterIconDataUrl(l.name); l.letter = true; l.custom = false;
-        save(); renderGroupPanel(); renderBarIcons(); closeIconPop();
+        renderGroupPanel(); save(); renderBarIcons(); closeIconPop();
         toast(`「${l.name}」未找到 Logo，已生成首字「${(l.name||'?')[0]||'?'}」图标（本地保存）`);
         return;
       }
@@ -2085,7 +2331,7 @@ iconPop.addEventListener('click', e => {
         if(done) return; done = true; clearTimeout(timer);
         grabIconDataUrl(srcs[i]).then(b64 => { // 转存 base64 落盘；失败降级在线引用
           l.icon = b64 || srcs[i]; l.letter = false; l.custom = false;
-          save(); renderGroupPanel(); renderBarIcons(); closeIconPop();
+          renderGroupPanel(); save(); renderBarIcons(); closeIconPop();
           toast(b64 ? '已获取 Logo（已转存本地，离线可用）' : '已获取网站 Logo（在线引用）');
         });
       };
@@ -2101,7 +2347,7 @@ iconPop.addEventListener('click', e => {
   if(e.target.closest('[data-upicon]')){ iconInput.click(); return; }
   if(e.target.closest('[data-rmicon]')){
     l.icon = null; l.letter = false; l.custom = false;
-    save(); renderGroupPanel(); renderBarIcons(); closeIconPop();
+    renderGroupPanel(); save(); renderBarIcons(); closeIconPop();
     toast('已恢复默认图标');
     return;
   }
@@ -2112,7 +2358,7 @@ iconPop.addEventListener('keydown', e => {
     if(!u) return;
     if(!/^(https?:|data:)/i.test(u)) u = 'https://' + u;
     iconCtx.l.icon = u; iconCtx.l.letter = false; iconCtx.l.custom = true;
-    save(); renderGroupPanel(); renderBarIcons(); closeIconPop();
+    renderGroupPanel(); save(); renderBarIcons(); closeIconPop();
     toast('图标已更新');
   }
 });
@@ -2135,7 +2381,7 @@ iconInput.addEventListener('change', e => {
       c.height = Math.round(img.height * sc);
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
       iconCtx.l.icon = c.toDataURL('image/png'); iconCtx.l.letter = false; iconCtx.l.custom = true;
-      save(); renderGroupPanel(); renderBarIcons(); closeIconPop();
+      renderGroupPanel(); save(); renderBarIcons(); closeIconPop();
       toast('自定义图标已应用');
     };
     img.src = rd.result;
@@ -2550,6 +2796,7 @@ function openSettings(){
   document.getElementById('tglVol').checked = S.showVol !== false;
   document.getElementById('tglNet').checked = S.showNet !== false;
   document.getElementById('tglVisits').checked = S.showVisits === true;
+  renderDragSortBtn();
   renderHotChips();
   renderQuickSet();
   renderWallThumbs();
@@ -2627,7 +2874,7 @@ function exportConfig(){
     visits:S.visits||{}, zoom:S.zoom,
     wallpaper:S.wallpaper, customWall:S.customWall||null, solidColor:S.solidColor||'#232733',
     hoverScale:S.hoverScale||1.55,
-    trayMute:!!S.trayMute, showVol:S.showVol !== false, showNet:S.showNet !== false, showVisits:S.showVisits === true, hotBoards:Array.isArray(S.hotBoards)?S.hotBoards:['baidu'],
+    trayMute:!!S.trayMute, showVol:S.showVol !== false, showNet:S.showNet !== false, showVisits:S.showVisits === true, dragSort:S.dragSort === true, hotBoards:Array.isArray(S.hotBoards)?S.hotBoards:['baidu'],
     history:S.history||[], histOn:S.histOn !== false,
     quick:S.quick||[],
   };
@@ -2657,7 +2904,7 @@ function importConfig(file){
         hoverScale:(typeof j.hoverScale === 'number' ? Math.min(2, Math.max(1, j.hoverScale)) : 1.55),
         history:Array.isArray(j.history) ? j.history : [],
         histOn:j.histOn !== false,
-        trayMute:!!j.trayMute, showVol:j.showVol !== false, showNet:j.showNet !== false, showVisits:j.showVisits === true,
+        trayMute:!!j.trayMute, showVol:j.showVol !== false, showNet:j.showNet !== false, showVisits:j.showVisits === true, dragSort:j.dragSort === true,
         hotBoards:(Array.isArray(j.hotBoards) && j.hotBoards.length) ? j.hotBoards.filter(k=>HOT_BOARDS[k]).slice(0,3) : ['baidu'],
         quick:Array.isArray(j.quick) ? j.quick : [{name:'DeepSeek', url:'https://chat.deepseek.com'}],
       });
