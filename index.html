@@ -2725,14 +2725,22 @@ function renderSun(){
   /* ---- 夜弧：夜间水平线上移到 y=40，夜弧与日弧同曲度（日弧控制点 -58，镜像 40+153=193）---- */
   let nightArc = '', nightMoon = '';
   if(afterSs){
-    const np = tc;                                 // 夜间进度 0=日落 1=日出
-    const nbx = x => (1-x)*(1-x)*260 + 2*(1-x)*x*140 + x*x*20;
+    const np = tc;                                 // 夜间进度 0=日落 1=日出（与标签一致：左=日落 → 右=下次日出）
+    const nbx = x => (1-x)*(1-x)*20 + 2*(1-x)*x*140 + x*x*260;
     const nby = x => (1-x)*(1-x)*40 + 2*(1-x)*x*193 + x*x*40;
-    nightArc = `<path d="M260,40 Q140,193 20,40" fill="none" stroke="#FFFFFF" stroke-width="1.4"
-      stroke-dasharray="3 6" opacity=".3"/>
-    <path d="M260,40 Q140,193 20,40" fill="none" stroke="#FFFFFF" stroke-width="1.8"
-      stroke-linecap="round" pathLength="100" stroke-dasharray="${(np*100).toFixed(1)} 100" opacity=".42"/>`;
     const mx = nbx(np).toFixed(1), my = nby(np).toFixed(1);
+    // 蒙版：在月亮位置挖洞，夜弧（轨道+进度线）不穿过月亮，避免线盖住月牙
+    const mHole = `mask="url(#moonHole)"`;
+    nightArc = `<defs>
+      <mask id="moonHole" maskUnits="userSpaceOnUse" x="0" y="0" width="280" height="140">
+        <rect x="0" y="0" width="280" height="140" fill="#fff"/>
+        <circle cx="${mx}" cy="${my}" r="15" fill="#000"/>
+      </mask>
+    </defs>
+    <path d="M20,40 Q140,193 260,40" fill="none" stroke="#FFFFFF" stroke-width="1.4"
+      stroke-dasharray="3 6" opacity=".3" ${mHole}/>
+    <path d="M20,40 Q140,193 260,40" fill="none" stroke="#FFFFFF" stroke-width="2.6"
+      stroke-linecap="round" pathLength="100" stroke-dasharray="${(np*100).toFixed(1)} 100" opacity=".92" ${mHole}/>`;
     // 新月造型沿夜弧移动（与原夜间角落月亮同款）
     nightMoon = `<g transform="translate(${mx},${my})" opacity=".95">
     <circle r="11" fill="#FFFFFF" opacity=".14"/>
