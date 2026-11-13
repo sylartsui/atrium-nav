@@ -235,7 +235,17 @@ body.ink-dark .text-halo{text-shadow:0 0 4px rgba(255,255,255,.35),0 1px 2px rgb
 #hotBar .hi .rk{font-size:11px;font-weight:700;color:var(--ink-weak);width:18px;text-align:center;flex:none}
 #hotBar .hi .rk.top{color:#FF453A}
 #hotBar .hi .hv{font-size:10.5px;color:var(--ink-weak)}
+#hotBar .hi .hb{font-size:10px;font-weight:700;color:var(--ink-weak);background:var(--hover-fill);padding:1px 6px;border-radius:8px;flex:none;opacity:.85}
 #hotBar .fail{font-size:12px;font-weight:500;color:var(--ink-weak);padding:0 12px}
+/* 热搜榜多选 chips（设置面板） */
+.hot-chips{display:flex;flex-wrap:wrap;gap:8px;width:100%}
+.hot-chips .chip{
+  padding:5px 14px;border-radius:15px;border:none;cursor:pointer;font-family:inherit;
+  background:var(--hover-fill);color:var(--ink-main);font-size:12px;font-weight:600;
+  transition:background .15s,color .15s;
+}
+.hot-chips .chip.on{background:var(--accent);color:#fff}
+.hot-chips .chip.dis{opacity:.45;cursor:not-allowed}
 /* ---------- 任务栏 ---------- */
 #bar{
   position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:150;
@@ -803,6 +813,13 @@ body.ink-dark .text-halo{text-shadow:0 0 4px rgba(255,255,255,.35),0 1px 2px rgb
     </div>
   </div>
   <div class="set-sec">
+    <div class="lab">热搜榜</div>
+    <div class="set-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+      <span class="hint" style="flex:none">选择任务栏滚动的热搜榜单，最多选 3 个</span>
+      <div class="hot-chips" id="hotChips"></div>
+    </div>
+  </div>
+  <div class="set-sec">
     <div class="lab">直达网站</div>
     <div id="quickSetList"></div>
     <div class="set-row" style="margin-top:6px">
@@ -922,12 +939,15 @@ function loadState(){
   return normalize({});
 }
 function normalize(v){
-  return Object.assign({
+  const s = Object.assign({
     zoom:100, engineId:'baidu', engines:[], groups:JSON.parse(JSON.stringify(DEFAULT_GROUPS)),
     iconCount:8, visits:{}, wallpaper:'flow', customWall:null, customWallBright:null, solidColor:'#232733',
     hoverScale:1.55, history:[], histOn:true, presetApplied:'', trayMute:false, showVol:true, showNet:true,
+    showVisits:false, hotBoards:['baidu'],
     quick:[{name:'DeepSeek', url:'https://chat.deepseek.com'}],
   }, v);
+  if(!Array.isArray(s.hotBoards) || !s.hotBoards.length) s.hotBoards = ['baidu'];
+  return s;
 }
 let memoryWall = null;   // 自定义壁纸超出 localStorage 配额时仅本次会话有效
 function save(){
@@ -1275,26 +1295,61 @@ document.getElementById('qsetAdd').onclick = () => {
 
 /* ================= 百度热搜 ================= */
 let hotItems = [];
+/* 热搜榜候选源：ep 为 null 表示暂无可靠免费数据源（chip 置灰） */
+const HOT_BOARDS = {
+  baidu:  {name:'百度热搜',      ep:'/v2/baidu/hot',            home:'https://top.baidu.com/board?tab=realtime'},
+  weibo:  {name:'微博热搜',      ep:'/v2/weibo',                home:'https://s.weibo.com/top/summary'},
+  douyin: {name:'抖音热榜',      ep:'/v2/douyin',               home:'https://www.douyin.com/hot'},
+  toutiao:{name:'今日头条热榜',  ep:'/v2/toutiao',              home:'https://www.toutiao.com/hot/'},
+  zhihu:  {name:'知乎热榜',      ep:'/v2/zhihu',                home:'https://www.zhihu.com/hot'},
+  bili:   {name:'B站热榜',       ep:'/v2/bili',                 home:'https://www.bilibili.com/v/popular/rank/all'},
+  douban: {name:'豆瓣热榜',      ep:'/v2/douban/weekly/movie',  home:'https://movie.douban.com/'},
+  itnews: {name:'36氪/虎嗅热榜', ep:'/v2/it-news/rank',         home:'https://www.36kr.com/hot-list/catalog'},
+  tophub: {name:'今日热榜',      ep:null,                       home:'https://tophub.today/'},
+};
+const HOT_MIRRORS = ['https://60s.b23.run','https://60s-api.viki.moe','https://60s.viki.moe'];
+function selectedBoards(){
+  const sel = Array.isArray(S.hotBoards) ? S.hotBoards.filter(k => HOT_BOARDS[k] && HOT_BOARDS[k].ep) : [];
+  return sel.length ? sel : ['baidu'];
+}
 function saveHotCache(){
   try{ localStorage.setItem('atrium_hotcache', JSON.stringify({t:Date.now(), d:hotItems})); }catch(e){}
 }
-async function fetchHot(){
-  const srcs = [
-    'https://60s.b23.run/v2/baidu/hot',
-    'https://60s-api.viki.moe/v2/baidu/hot',
-    'https://60s.viki.moe/v2/baidu/hot',
-  ];
-  for(const src of srcs){
+async function fetchOneBoard(k){
+  const ep = HOT_BOARDS[k].ep;
+  for(const base of HOT_MIRRORS){
     try{
-      const r = await fetch(src, {signal: timeoutSig(8000)});
+      const r = await fetch(base + ep, {signal: timeoutSig(8000)});
       const j = await r.json();
-      if(j && j.code === 200 && Array.isArray(j.data) && j.data.length){
-        hotItems = j.data.slice(0, 20);
-        saveHotCache();
-        renderHot();
-        return;
-      }
-    }catch(e){ /* 换下一个源 */ }
+      if(j && j.code === 200 && Array.isArray(j.data) && j.data.length) return {k, data:j.data};
+    }catch(e){ /* 换下一个镜像 */ }
+  }
+  return null;
+}
+async function fetchHot(){
+  const sel = selectedBoards();
+  const rs = await Promise.all(sel.map(fetchOneBoard));
+  const merged = [];
+  rs.forEach(r => {
+    if(!r) return;
+    const bname = HOT_BOARDS[r.k].name;
+    r.data.slice(0, 10).forEach((it, i) => {
+      const t = it.title || it.name || '';
+      if(!t) return;
+      merged.push({
+        rank: i + 1, title: t,
+        url: it.url || it.link || '',
+        score: it.score || it.hot || (it.rating && it.rating.value) || '',
+        score_desc: it.score_desc || it.hot_desc || (it.rating && it.rating.value ? '评分 ' + it.rating.value : ''),
+        src: bname,
+      });
+    });
+  });
+  if(merged.length){
+    hotItems = merged;
+    saveHotCache();
+    renderHot();
+    return;
   }
   // 全部失败 → 缓存兜底
   try{
@@ -1307,12 +1362,42 @@ async function fetchHot(){
   }catch(e){}
   renderHot(); // hotItems 为空 → 显示失败态
 }
+function renderHotChips(){
+  const box = document.getElementById('hotChips');
+  if(!box) return;
+  const sel = Array.isArray(S.hotBoards) ? S.hotBoards : ['baidu'];
+  box.innerHTML = Object.entries(HOT_BOARDS).map(([k, b]) => {
+    const on = sel.includes(k);
+    const dis = !b.ep;
+    return `<button class="chip ${on ? 'on' : ''} ${dis ? 'dis' : ''}" data-bk="${k}" title="${dis ? '暂无可靠免费数据源，暂不可选' : b.name}">${esc(b.name)}${dis ? ' ·暂无源' : ''}</button>`;
+  }).join('');
+}
+document.getElementById('hotChips').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if(!chip || chip.classList.contains('dis')) return;
+  const k = chip.dataset.bk;
+  let sel = (Array.isArray(S.hotBoards) && S.hotBoards.length) ? [...S.hotBoards] : ['baidu'];
+  if(sel.includes(k)){
+    sel = sel.filter(x => x !== k);
+    if(!sel.length){ toast('至少保留一个热搜榜'); return; }
+  }else{
+    if(sel.length >= 3){ toast('最多选 3 个热搜榜，请先取消一个'); return; }
+    sel.push(k);
+  }
+  S.hotBoards = sel;
+  save();
+  renderHotChips();
+  renderHot(); // 立即用现有缓存/空态重绘标签
+  fetchHot();  // 按新榜单重新拉取
+  toast('热搜榜已更新');
+});
+
 function renderHot(fromCache){
   const bar = document.getElementById('hotBar');
   const lab = bar.querySelector('.lab');
-  lab.innerHTML = fromCache
-    ? '<span class="flame">🔥</span>百度热搜 · 缓存'
-    : '<span class="flame">🔥</span>百度热搜';
+  const sel = selectedBoards();
+  const labName = sel.length === 1 ? HOT_BOARDS[sel[0]].name : '多榜热搜';
+  lab.innerHTML = `<span class="flame">🔥</span>${esc(labName)}${fromCache ? ' · 缓存' : ''}`;
   let track = document.getElementById('hotTrack');
   if(!track){
     const win = bar.querySelector('.win');
@@ -1328,8 +1413,8 @@ function renderHot(fromCache){
     bar.querySelector('.win').onclick = () => { bar.querySelector('.win').onclick = null; fetchHot(); };
     return;
   }
-  const one = hotItems.map(it => `<span class="hi" data-hot="${esc(it.url || '')}" data-w="${esc(it.title)}">
-    <span class="rk ${+it.rank <= 3 ? 'top' : ''}">${it.rank}</span>${esc(it.title)}
+  const one = hotItems.map(it => `<span class="hi" data-hot="${esc(it.url || '')}" data-w="${esc(it.title)}" data-src="${esc(it.src || '')}">
+    ${it.src ? `<span class="hb">${esc(it.src)}</span>` : ''}<span class="rk ${+it.rank <= 3 ? 'top' : ''}">${it.rank}</span>${esc(it.title)}
     ${it.score ? `<span class="hv">${esc(it.score_desc || it.score)}</span>` : ''}
   </span>`).join('');
   track.innerHTML = one + one; // 两份内容无缝循环
@@ -1338,7 +1423,9 @@ function renderHot(fromCache){
     const hi = e.target.closest('.hi');
     if(!hi) return;
     const u = hi.dataset.hot;
-    window.open(u || 'https://www.baidu.com/s?wd=' + encodeURIComponent(hi.dataset.w), '_blank');
+    if(u) return window.open(u, '_blank');
+    const bk = sel.find(k => HOT_BOARDS[k].name === hi.dataset.src);
+    window.open(bk ? HOT_BOARDS[bk].home : HOT_BOARDS[sel[0]].home, '_blank');
   };
   bar.classList.add('open');
   hotMeasure(); // 精确测量循环周期（方案A：用两份内容的偏移差）
@@ -2386,6 +2473,7 @@ function openSettings(){
   document.getElementById('tglVol').checked = S.showVol !== false;
   document.getElementById('tglNet').checked = S.showNet !== false;
   document.getElementById('tglVisits').checked = S.showVisits === true;
+  renderHotChips();
   renderQuickSet();
   renderWallThumbs();
   mask.classList.add('open'); settings.classList.add('open');
@@ -2462,7 +2550,7 @@ function exportConfig(){
     visits:S.visits||{}, zoom:S.zoom,
     wallpaper:S.wallpaper, customWall:S.customWall||null, solidColor:S.solidColor||'#232733',
     hoverScale:S.hoverScale||1.55,
-    trayMute:!!S.trayMute, showVol:S.showVol !== false, showNet:S.showNet !== false, showVisits:S.showVisits === true,
+    trayMute:!!S.trayMute, showVol:S.showVol !== false, showNet:S.showNet !== false, showVisits:S.showVisits === true, hotBoards:Array.isArray(S.hotBoards)?S.hotBoards:['baidu'],
     history:S.history||[], histOn:S.histOn !== false,
     quick:S.quick||[],
   };
@@ -2493,6 +2581,7 @@ function importConfig(file){
         history:Array.isArray(j.history) ? j.history : [],
         histOn:j.histOn !== false,
         trayMute:!!j.trayMute, showVol:j.showVol !== false, showNet:j.showNet !== false, showVisits:j.showVisits === true,
+        hotBoards:(Array.isArray(j.hotBoards) && j.hotBoards.length) ? j.hotBoards.filter(k=>HOT_BOARDS[k]).slice(0,3) : ['baidu'],
         quick:Array.isArray(j.quick) ? j.quick : [{name:'DeepSeek', url:'https://chat.deepseek.com'}],
       });
       memoryWall = null;
@@ -2508,6 +2597,7 @@ function importConfig(file){
       document.getElementById('tglVol').checked = S.showVol !== false;
       document.getElementById('tglNet').checked = S.showNet !== false;
   document.getElementById('tglVisits').checked = S.showVisits === true;
+  renderHotChips();
       toast('配置已导入');
     }catch(e){
       toast('导入失败：' + (e.message === '格式不符' ? '不是本导航页导出的配置文件' : '文件解析出错'));
