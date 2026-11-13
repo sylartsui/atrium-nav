@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v1.5.3</title>
+<title>Atrium · 导航 v1.5.4</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -233,10 +233,11 @@ body.ink-dark .text-halo{text-shadow:0 0 4px rgba(255,255,255,.35),0 1px 2px rgb
 }
 #hotBar .hi:hover{color:var(--ink-strong,#111);font-size:15px;font-weight:600}
 #hotBar .hi .rk{font-size:11px;font-weight:700;color:var(--ink-weak);width:18px;text-align:center;flex:none}
-#hotBar .hi .rk.top{color:#FF453A}
+#hotBar .hi .rk.top{color:#fff;background:#FF453A;width:16px;height:16px;border-radius:50%;font-size:10.5px;display:flex;align-items:center;justify-content:center;line-height:1}
 #hotBar .hi .hv{font-size:10.5px;color:var(--ink-weak)}
 #hotBar .hi .hb{font-size:10px;font-weight:700;color:var(--ink-weak);background:var(--hover-fill);padding:1px 6px;border-radius:8px;flex:none;opacity:.85}
 #hotBar .fail{font-size:12px;font-weight:500;color:var(--ink-weak);padding:0 12px}
+body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* 热搜榜多选 chips（设置面板） */
 .hot-chips{display:flex;flex-wrap:wrap;gap:8px;width:100%}
 .hot-chips .chip{
@@ -383,6 +384,8 @@ body.ink-dark .text-halo{text-shadow:0 0 4px rgba(255,255,255,.35),0 1px 2px rgb
 #favPop .fp-title{font-size:14px;font-weight:700;margin-bottom:8px}
 #favPop .fp-browser{font-size:12px;font-weight:600;color:var(--accent);margin-bottom:6px}
 #favPop .fp-path{font-size:11.5px;font-family:Consolas,'Courier New',monospace;background:var(--card-fill);border-radius:8px;padding:8px 10px;word-break:break-all;cursor:pointer;line-height:1.5}
+#favPop .fp-more-title{font-size:11px;color:var(--ink-weak);margin-top:8px}
+#favPop .fp-more-name{font-size:11px;font-weight:600;color:var(--ink-sub);margin:6px 0 3px}
 #favPop .fp-tip{font-size:11px;color:var(--ink-weak);margin:8px 0 10px;line-height:1.5}
 #favPop .fp-btns{display:flex;gap:8px}
 #favPop .fp-btns .set-btn{flex:1}
@@ -469,6 +472,7 @@ body.ink-dark .text-halo{text-shadow:0 0 4px rgba(255,255,255,.35),0 1px 2px rgb
 }
 .manage-foot .done{background:var(--accent);color:#fff}
 .manage-foot .danger{background:rgba(255,69,58,.14);color:#FF453A}
+.manage-foot .fetch{background:var(--card-fill);color:var(--ink-main);margin-right:auto}
 .panel-foot{flex:none;padding:10px 16px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .panel-foot button{
   height:34px;padding:0 18px;border:none;border-radius:17px;cursor:pointer;
@@ -870,6 +874,7 @@ body.ink-dark .text-halo{text-shadow:0 0 4px rgba(255,255,255,.35),0 1px 2px rgb
   <div class="fp-title">获取收藏夹网址</div>
   <div class="fp-browser" id="fpBrowser"></div>
   <div class="fp-path" id="fpPath" title="点击复制路径"></div>
+  <div id="fpMore"></div>
   <div class="fp-tip">点「选择文件」→ 在文件框地址栏粘贴路径回车 → 选中文件打开即可一键导入（路径支持环境变量，无需知道用户名）</div>
   <div class="fp-btns">
     <button class="set-btn" id="fpCopy">复制路径</button>
@@ -882,7 +887,7 @@ body.ink-dark .text-halo{text-shadow:0 0 4px rgba(255,255,255,.35),0 1px 2px rgb
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '1.5.3';
+const APP_VER = '1.5.4';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -1576,6 +1581,39 @@ function letterIconDataUrl(name){ // 首字图标生成 PNG 落盘（替代 'let
   x.fillText(ch, 32, 35);
   return c.toDataURL('image/png');
 }
+function pngDims(durl){ // 读 PNG IHDR 尺寸（用于识别旧版落盘的 64×64 首字图标）
+  try{
+    const b = atob(durl.slice(durl.indexOf(',') + 1));
+    if(b.length < 24 || b.slice(1, 4) !== 'PNG') return '';
+    return ((b.charCodeAt(16) << 24 | b.charCodeAt(17) << 16 | b.charCodeAt(18) << 8 | b.charCodeAt(19)) >>> 0) + 'x'
+         + ((b.charCodeAt(20) << 24 | b.charCodeAt(21) << 16 | b.charCodeAt(22) << 8 | b.charCodeAt(23)) >>> 0);
+  }catch(e){ return ''; }
+}
+function fetchIconForLink(l){ // 批量获取：成功 resolve('logo')，全源失败落首字图标 resolve('letter')
+  return new Promise(res => {
+    let host = '';
+    try{ host = new URL(l.url).hostname; }catch(e){}
+    if(!host){ l.icon = letterIconDataUrl(l.name); l.letter = true; l.custom = false; res('letter'); return; }
+    const srcs = [
+      `https://icon.horse/icon/${host}`,
+      `https://www.google.com/s2/favicons?sz=128&domain=${host}`,
+      `https://api.iowen.cn/favicon/${host}.png`,
+    ];
+    const trySrc = i => {
+      if(i >= srcs.length){ l.icon = letterIconDataUrl(l.name); l.letter = true; l.custom = false; res('letter'); return; }
+      let done = false;
+      const timer = setTimeout(() => { if(done) return; done = true; trySrc(i + 1); }, 6000);
+      const probe = new Image();
+      probe.onload = () => {
+        if(done) return; done = true; clearTimeout(timer);
+        grabIconDataUrl(srcs[i]).then(b64 => { l.icon = b64 || srcs[i]; l.letter = false; l.custom = false; res('logo'); });
+      };
+      probe.onerror = () => { if(done) return; done = true; clearTimeout(timer); trySrc(i + 1); };
+      probe.src = srcs[i];
+    };
+    trySrc(0);
+  });
+}
 function faviconEl(link, cls){
   let host = '';
   try{ host = new URL(link.url).hostname; }catch(e){ host = link.url; }
@@ -1695,6 +1733,7 @@ function renderGroupPanel(){
           <button class="add" data-addlink="1">添加</button>
         </div>
         <div class="manage-foot">
+          <button class="fetch" data-fetchall="1" title="为本组所有未获取到 Logo 的网址重新获取，失败则用首字图标">⤓ 一键获取 Logo</button>
           ${editingAll
             ? `<button class="done" data-save="1">保存</button>`
             : `<button class="danger" data-cancel="1">取消</button><button class="done" data-save="1">完成</button>`}
@@ -1743,6 +1782,28 @@ document.getElementById('grpBody').addEventListener('click', e => {
   }
   // 编辑 / 删除 / 添加 / 保存
   const g = S.groups.find(x => x.id === gid);
+  if(e.target.closest('[data-fetchall]')){
+    const fa = e.target.closest('[data-fetchall]');
+    if(!g || fa.disabled) return;
+    const isLetterIcon = l => !l.icon || l.icon === 'letter' || l.letter === true
+      || ((l.icon||'').startsWith('data:image/png;base64,') && !l.custom && pngDims(l.icon) === '64x64');
+    const targets = g.links.filter(isLetterIcon);
+    if(!targets.length){ toast('该分组所有网址都已有 Logo'); return; }
+    fa.disabled = true;
+    let i = 0, okN = 0, letterN = 0;
+    const next = () => {
+      if(i >= targets.length){
+        save(); renderGroupPanel(); renderBarIcons();
+        toast(`Logo 批量获取完成：成功 ${okN} 个，未获取已用首字图标 ${letterN} 个`);
+        return;
+      }
+      const l = targets[i++];
+      fa.textContent = `获取中 ${i}/${targets.length}…`;
+      fetchIconForLink(l).then(r => { if(r === 'letter') letterN++; else okN++; save(); next(); });
+    };
+    next();
+    return;
+  }
   if(e.target.closest('[data-cancel]')){ editingGroup = null; renderGroupPanel(); return; }
   if(g && e.target.closest('[data-save]')){
     g.name = sec.querySelector('.g-name').value.trim() || g.name;
@@ -1831,8 +1892,13 @@ document.getElementById('clearLinksBtn').onclick = e => {
   }
 };
 /* ---------- 获取收藏夹网址：识别浏览器 → 给出收藏夹文件路径 → 选文件 → 最前面新增「我的收藏」→ 一键全导 ---------- */
+const P_360EE_X   = {name:'360 极速浏览器X',      path:'%LOCALAPPDATA%\\360ChromeX\\Chrome\\User Data\\Default\\Bookmarks'};
+const P_360EE_OLD = {name:'360 极速浏览器（旧版）', path:'%LOCALAPPDATA%\\360Chrome\\Chrome\\User Data\\Default\\Bookmarks'};
+const P_360SE     = {name:'360 安全浏览器',        path:'360 无 Bookmarks 文件：菜单 → 收藏 → 导出收藏夹（HTML）→ 选导出的文件'};
 function detectBrowser(){
   const ua = navigator.userAgent;
+  if(/360EE/.test(ua)) return {name:'360 极速浏览器', path:P_360EE_X.path, skip:P_360EE_X};
+  if(/360SE/.test(ua)) return {name:'360 安全浏览器', path:P_360SE.path, skip:P_360SE};
   if(/Edg\//.test(ua))          return {name:'Microsoft Edge',  path:'%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\Default\\Bookmarks'};
   if(/Firefox\//.test(ua))      return {name:'Firefox',         path:'Firefox 无 Bookmarks 文件：书签管理器 → 导入和备份 → 导出书签到 HTML，再选导出的文件'};
   if(/Chrome\//.test(ua))       return {name:'Google Chrome',   path:'%LOCALAPPDATA%\\Google\\Chrome\\User Data\\Default\\Bookmarks'};
@@ -1846,6 +1912,9 @@ document.getElementById('favGetBtn').onclick = e => {
   const p = document.getElementById('fpPath');
   p.textContent = b.path;
   p.dataset.path = b.path;
+  const extras = [P_360EE_X, P_360EE_OLD, P_360SE].filter(x => x !== b.skip);
+  document.getElementById('fpMore').innerHTML = '<div class="fp-more-title">其他浏览器收藏夹（点路径复制）：</div>' +
+    extras.map(m => '<div class="fp-more-name">' + esc(m.name) + '</div><div class="fp-path" data-path="' + esc(m.path) + '">' + esc(m.path) + '</div>').join('');
   favPop.classList.add('open');
 };
 document.getElementById('fpCopy').onclick = () => {
@@ -1857,6 +1926,14 @@ document.getElementById('fpCopy').onclick = () => {
   }
 };
 document.getElementById('fpPath').onclick = () => document.getElementById('fpCopy').click();
+  document.getElementById('fpMore').addEventListener('click', e => {
+    const el = e.target.closest('.fp-path');
+    if(!el) return;
+    const t = el.dataset.path || '';
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(() => toast('路径已复制'), () => toast('复制失败，请手动选中路径复制'));
+    }else{ toast('请手动选中路径复制'); }
+  });
 document.getElementById('fpOpen').onclick = () => {
   favPop.classList.remove('open');
   document.getElementById('favFileInput').click();
@@ -1993,7 +2070,7 @@ iconPop.addEventListener('click', e => {
     const trySrc = i => {
       if(i >= srcs.length){
         // 三个源全部失败（含超时）：生成首字图标 PNG 落盘（一次生成永久使用）
-        l.icon = letterIconDataUrl(l.name);
+        l.icon = letterIconDataUrl(l.name); l.letter = true; l.custom = false;
         save(); renderGroupPanel(); renderBarIcons(); closeIconPop();
         toast(`「${l.name}」未找到 Logo，已生成首字「${(l.name||'?')[0]||'?'}」图标（本地保存）`);
         return;
@@ -2007,7 +2084,7 @@ iconPop.addEventListener('click', e => {
       probe.onload = () => {
         if(done) return; done = true; clearTimeout(timer);
         grabIconDataUrl(srcs[i]).then(b64 => { // 转存 base64 落盘；失败降级在线引用
-          l.icon = b64 || srcs[i];
+          l.icon = b64 || srcs[i]; l.letter = false; l.custom = false;
           save(); renderGroupPanel(); renderBarIcons(); closeIconPop();
           toast(b64 ? '已获取 Logo（已转存本地，离线可用）' : '已获取网站 Logo（在线引用）');
         });
@@ -2023,7 +2100,7 @@ iconPop.addEventListener('click', e => {
   }
   if(e.target.closest('[data-upicon]')){ iconInput.click(); return; }
   if(e.target.closest('[data-rmicon]')){
-    l.icon = null;
+    l.icon = null; l.letter = false; l.custom = false;
     save(); renderGroupPanel(); renderBarIcons(); closeIconPop();
     toast('已恢复默认图标');
     return;
@@ -2034,7 +2111,7 @@ iconPop.addEventListener('keydown', e => {
     let u = e.target.value.trim();
     if(!u) return;
     if(!/^(https?:|data:)/i.test(u)) u = 'https://' + u;
-    iconCtx.l.icon = u;
+    iconCtx.l.icon = u; iconCtx.l.letter = false; iconCtx.l.custom = true;
     save(); renderGroupPanel(); renderBarIcons(); closeIconPop();
     toast('图标已更新');
   }
@@ -2057,7 +2134,7 @@ iconInput.addEventListener('change', e => {
       c.width = Math.round(img.width * sc);
       c.height = Math.round(img.height * sc);
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      iconCtx.l.icon = c.toDataURL('image/png');
+      iconCtx.l.icon = c.toDataURL('image/png'); iconCtx.l.letter = false; iconCtx.l.custom = true;
       save(); renderGroupPanel(); renderBarIcons(); closeIconPop();
       toast('自定义图标已应用');
     };
@@ -2811,7 +2888,7 @@ renderEngineBtn(); renderEngineMenu();
 { // 首字图标一次性落盘：把旧 'letter' 标记生成为 PNG 存进数据，此后渲染直接用图片，不再每次生成
   let n = 0;
   for(const g of S.groups) for(const l of g.links){
-    if(l.icon === 'letter'){ l.icon = letterIconDataUrl(l.name); n++; }
+    if(l.icon === 'letter'){ l.icon = letterIconDataUrl(l.name); l.letter = true; n++; }
   }
   if(n){ save(); console.log('首字图标已落盘:', n + ' 个'); }
 }
