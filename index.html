@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v1.5.6</title>
+<title>Atrium · 导航 v1.5.7</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -928,7 +928,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 <input type="file" id="cfgInput" accept=".json,application/json">
 
 <div id="toast" class="glass text-halo"></div>
-<input type="file" id="iconInput" accept="image/*" style="display:none">
+<input type="file" id="iconInput" accept="image/*,.ico" style="display:none">
 <div id="iconPop" class="glass"></div>
 <div id="movePop" class="glass"></div>
 <div id="sortPop" class="glass">
@@ -954,7 +954,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '1.5.6';
+const APP_VER = '1.5.7';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -2275,7 +2275,7 @@ grpPanel.addEventListener('mouseleave', () => {
 });
 grpPanel.addEventListener('mouseenter', () => clearTimeout(closeTimer));
 addEventListener('click', e => {
-  if(grpOpen && !grpPanel.contains(e.target) && !grpBtn.contains(e.target)
+  if(grpOpen && !fileDlgGuard && !grpPanel.contains(e.target) && !grpBtn.contains(e.target)
      && !iconPop.contains(e.target)
      && !sortPop.contains(e.target)
      && !document.getElementById('settings').contains(e.target)) setGrpPanel(false);
@@ -2285,6 +2285,7 @@ addEventListener('click', e => {
 const iconPop = document.getElementById('iconPop');
 const iconInput = document.getElementById('iconInput');
 let iconCtx = null; // {g, l}
+let fileDlgGuard = false; // 文件对话框守卫：原生对话框关闭后浏览器会向页面补发一次「幽灵 click」，期间拦截外点关闭
 function openIconPop(anchor, lid){
   let hit = null;
   for(const gg of S.groups){
@@ -2354,7 +2355,7 @@ iconPop.addEventListener('click', e => {
     trySrc(0);
     return;
   }
-  if(e.target.closest('[data-upicon]')){ iconInput.click(); return; }
+  if(e.target.closest('[data-upicon]')){ fileDlgGuard = true; iconInput.click(); return; }
   if(e.target.closest('[data-rmicon]')){
     l.icon = null; l.letter = false; l.custom = false;
     renderGroupPanel(); save(); renderBarIcons(); closeIconPop();
@@ -2373,14 +2374,15 @@ iconPop.addEventListener('keydown', e => {
   }
 });
 addEventListener('click', e => {
-  if(iconPop.classList.contains('open') && !iconPop.contains(e.target)
+  if(iconPop.classList.contains('open') && !fileDlgGuard && !iconPop.contains(e.target)
      && !e.target.closest('[data-iconmenu]')) closeIconPop();
 });
 iconInput.addEventListener('change', e => {
+  fileDlgGuard = false; // 文件已选定，解除守卫
   const f = e.target.files[0];
   e.target.value = '';
   if(!f || !iconCtx) return;
-  if(!/^image\//.test(f.type)){ toast('请选择图片文件'); return; }
+  if(!/^image\//.test(f.type) && !/\.(ico|png|jpe?g|gif|webp|svg|bmp)$/i.test(f.name)){ toast('请选择图片文件'); return; }
   const rd = new FileReader();
   rd.onload = () => {
     const img = new Image();
@@ -2398,6 +2400,7 @@ iconInput.addEventListener('change', e => {
   };
   rd.readAsDataURL(f);
 });
+iconInput.addEventListener('cancel', () => { fileDlgGuard = false; }); // 对话框被取消/关闭也解除守卫
 
 /* ================= 天气 ================= */
 const WX_CODES = {
