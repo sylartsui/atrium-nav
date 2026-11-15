@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v1.5.7</title>
+<title>Atrium · 导航 v1.5.8</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -879,6 +879,13 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
     </div>
   </div>
   <div class="set-sec">
+    <div class="lab">滚动特效</div>
+    <div class="set-row">
+      <label class="tgl"><input type="checkbox" id="tglRb" checked><span class="tgl-track"></span></label>
+      <span class="hint">窗体滚动橡皮筋特效（热搜除外）</span>
+    </div>
+  </div>
+  <div class="set-sec">
     <div class="lab">热搜榜</div>
     <div class="set-row" style="flex-direction:column;align-items:flex-start;gap:8px">
       <span class="hint" style="flex:none">选择任务栏滚动的热搜榜单，最多选 3 个</span>
@@ -954,7 +961,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '1.5.7';
+const APP_VER = '1.5.8';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -1015,7 +1022,7 @@ function normalize(v){
     zoom:100, engineId:'baidu', engines:[], groups:JSON.parse(JSON.stringify(DEFAULT_GROUPS)),
     iconCount:8, visits:{}, wallpaper:'flow', customWall:null, customWallBright:null, solidColor:'#232733',
     hoverScale:1.55, history:[], histOn:true, presetApplied:'', trayMute:false, showVol:true, showNet:true,
-    showVisits:false, dragSort:false, hotBoards:['baidu'],
+    showVisits:false, dragSort:false, rbScroll:true, hotBoards:['baidu'],
     quick:[{name:'DeepSeek', url:'https://chat.deepseek.com'}],
   }, v);
   if(!Array.isArray(s.hotBoards) || !s.hotBoards.length) s.hotBoards = ['baidu'];
@@ -2803,33 +2810,41 @@ sunPanel.addEventListener('mouseleave', () => {
 });
 setInterval(() => { if(sunPanel.classList.contains('open')) renderSun(); }, 30000);
 
-/* ================= 橡皮筋回弹（网址导航 / 设置共用） ================= */
-/* 滚到顶/底再继续滚时，内容随滚轮拉伸一点，松手回弹（iOS 式 overscroll 手感） */
-function applyRubberBand(gb){
-  let rbY = 0, rbTimer = null;
-  const RB_MAX = 17; // 最大拉伸像素（原 26，缩短 1/3）
-  const rbSet = (y, spring) => {
-    Array.from(gb.children).forEach(el => {
-      el.style.transition = spring ? 'transform .55s cubic-bezier(.2,1.35,.4,1)' : '';
-      el.style.transform = y ? `translateY(${y}px)` : '';
-    });
-  };
-  const rbRelease = () => { if(rbY){ rbY = 0; rbSet(0, true); } };
-  gb.addEventListener('wheel', e => {
-    // 仅在已到边界还继续同向滚动时拉伸
-    const atTop = gb.scrollTop <= 0 && e.deltaY < 0;
-    const atBottom = gb.scrollTop + gb.clientHeight >= gb.scrollHeight - 1 && e.deltaY > 0;
-    if(!atTop && !atBottom){ if(rbY) rbRelease(); return; }
-    clearTimeout(rbTimer);
-    // 阻尼积累：越拉越紧；方向与滚动意图相反（到顶上滚→内容下移露出顶部空隙，到底下滚→内容上移）
-    const step = -Math.sign(e.deltaY) * Math.min(7, Math.abs(e.deltaY) * .25);
-    rbY = Math.max(-RB_MAX, Math.min(RB_MAX, rbY + step));
-    rbSet(rbY, false);
-    rbTimer = setTimeout(rbRelease, 150);
-  }, { passive: true });
+/* ================= 橡皮筋回弹（网址导航 / 设置 / 历史 / 移到 / 分组排序弹层） ================= */
+/* 滚到顶/底再继续滚时，内容随滚轮拉伸一点，松手回弹（iOS 式 overscroll 手感）。
+   事件委托到 document：可覆盖动态重建的滚动容器（历史列表、移到弹层每次打开重建）；
+   热搜为横向拖动轨道，不适用。设置里的「窗体滚动橡皮筋特效」开关（S.rbScroll，默认开）整体控制 */
+const RB_MAX = 17; // 最大拉伸像素（原 26，缩短 1/3）
+const RB_SEL = '#grpBody, #setScroll, #histPanel .hist-list, #movePop .mp-scroll, #sortPop .sp-scroll';
+const rbStates = new WeakMap(); // 滚动容器 → {y, timer}
+function rbSet(gb, y, spring){
+  Array.from(gb.children).forEach(el => {
+    el.style.transition = spring ? 'transform .55s cubic-bezier(.2,1.35,.4,1)' : '';
+    el.style.transform = y ? `translateY(${y}px)` : '';
+  });
 }
-applyRubberBand(document.getElementById('grpBody'));
-applyRubberBand(document.getElementById('setScroll'));
+function rbRelease(gb){
+  const st = rbStates.get(gb);
+  if(st && st.y){ st.y = 0; rbSet(gb, 0, true); }
+}
+function rbReleaseAll(){ document.querySelectorAll(RB_SEL).forEach(rbRelease); }
+document.addEventListener('wheel', e => {
+  const gb = e.target && e.target.closest ? e.target.closest(RB_SEL) : null;
+  if(!gb) return;
+  if(S.rbScroll === false){ rbRelease(gb); return; } // 开关关闭：即时收起已有拉伸
+  let st = rbStates.get(gb);
+  if(!st){ st = { y: 0, timer: null }; rbStates.set(gb, st); }
+  // 仅在已到边界还继续同向滚动时拉伸
+  const atTop = gb.scrollTop <= 0 && e.deltaY < 0;
+  const atBottom = gb.scrollTop + gb.clientHeight >= gb.scrollHeight - 1 && e.deltaY > 0;
+  if(!atTop && !atBottom){ if(st.y) rbRelease(gb); return; }
+  clearTimeout(st.timer);
+  // 阻尼积累：越拉越紧；方向与滚动意图相反（到顶上滚→内容下移露出顶部空隙，到底下滚→内容上移）
+  const step = -Math.sign(e.deltaY) * Math.min(7, Math.abs(e.deltaY) * .25);
+  st.y = Math.max(-RB_MAX, Math.min(RB_MAX, st.y + step));
+  rbSet(gb, st.y, false);
+  st.timer = setTimeout(() => rbRelease(gb), 150);
+}, { passive: true });
 
 /* ================= 设置弹窗 ================= */
 const mask = document.getElementById('mask');
@@ -2845,6 +2860,7 @@ function openSettings(){
   document.getElementById('tglVol').checked = S.showVol !== false;
   document.getElementById('tglNet').checked = S.showNet !== false;
   document.getElementById('tglVisits').checked = S.showVisits === true;
+  document.getElementById('tglRb').checked = S.rbScroll !== false;
   renderDragSortBtn();
   renderHotChips();
   renderQuickSet();
@@ -2923,7 +2939,7 @@ function exportConfig(){
     visits:S.visits||{}, zoom:S.zoom,
     wallpaper:S.wallpaper, customWall:S.customWall||null, solidColor:S.solidColor||'#232733',
     hoverScale:S.hoverScale||1.55,
-    trayMute:!!S.trayMute, showVol:S.showVol !== false, showNet:S.showNet !== false, showVisits:S.showVisits === true, dragSort:S.dragSort === true, hotBoards:Array.isArray(S.hotBoards)?S.hotBoards:['baidu'],
+    trayMute:!!S.trayMute, showVol:S.showVol !== false, showNet:S.showNet !== false, showVisits:S.showVisits === true, dragSort:S.dragSort === true, rbScroll:S.rbScroll !== false, hotBoards:Array.isArray(S.hotBoards)?S.hotBoards:['baidu'],
     history:S.history||[], histOn:S.histOn !== false,
     quick:S.quick||[],
   };
@@ -2953,7 +2969,7 @@ function importConfig(file){
         hoverScale:(typeof j.hoverScale === 'number' ? Math.min(2, Math.max(1, j.hoverScale)) : 1.55),
         history:Array.isArray(j.history) ? j.history : [],
         histOn:j.histOn !== false,
-        trayMute:!!j.trayMute, showVol:j.showVol !== false, showNet:j.showNet !== false, showVisits:j.showVisits === true, dragSort:j.dragSort === true,
+        trayMute:!!j.trayMute, showVol:j.showVol !== false, showNet:j.showNet !== false, showVisits:j.showVisits === true, dragSort:j.dragSort === true, rbScroll:j.rbScroll !== false,
         hotBoards:(Array.isArray(j.hotBoards) && j.hotBoards.length) ? j.hotBoards.filter(k=>HOT_BOARDS[k]).slice(0,3) : ['baidu'],
         quick:Array.isArray(j.quick) ? j.quick : [{name:'DeepSeek', url:'https://chat.deepseek.com'}],
       });
@@ -2970,6 +2986,8 @@ function importConfig(file){
       document.getElementById('tglVol').checked = S.showVol !== false;
       document.getElementById('tglNet').checked = S.showNet !== false;
   document.getElementById('tglVisits').checked = S.showVisits === true;
+  document.getElementById('tglRb').checked = S.rbScroll !== false;
+  rbReleaseAll();
   renderHotChips();
       toast('配置已导入');
     }catch(e){
@@ -3174,6 +3192,7 @@ setInterval(() => { if(netPanel.classList.contains('open')) renderNet(); }, 5000
 /* 托盘图标显隐开关 */
 document.getElementById('tglVol').addEventListener('change', e => { S.showVol = e.target.checked; save(); applyTray(); });
 document.getElementById('tglVisits').addEventListener('change', e => { S.showVisits = e.target.checked; save(); renderGroupPanel(); toast(e.target.checked ? '访问量角标已显示' : '访问量角标已隐藏'); });
+document.getElementById('tglRb').addEventListener('change', e => { S.rbScroll = e.target.checked; save(); rbReleaseAll(); toast(e.target.checked ? '窗体滚动橡皮筋已开启' : '窗体滚动橡皮筋已关闭'); });
 document.getElementById('tglNet').addEventListener('change', e => { S.showNet = e.target.checked; save(); applyTray(); });
 
 renderEngineBtn(); renderEngineMenu();
