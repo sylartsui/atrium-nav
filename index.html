@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v2.0.1</title>
+<title>Atrium · 导航 v2.1.2</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -851,7 +851,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 
 <div id="tip" class="glass text-halo"></div>
 
-<!-- 站立活动倒计时：两段轮流；超时负数计时+抖动；点击进入下一段（未到时间会询问是否提前完成；「到时放大提醒」开启时归零放大 300% 居中全屏，点击恢复；「倒计时系统提醒」开启时标题/图标闪烁+系统通知；可在设置开关） -->
+<!-- 站立活动倒计时：两段轮流；超时负数计时+抖动；点击进入下一段（未到时间会询问是否提前完成；「到时放大提醒」开启时归零放大 300% 居中全屏，点击恢复；「倒计时系统提醒」开启时标题闪烁+系统通知；可在设置开关） -->
 <div id="countPop" role="timer" aria-label="站立活动倒计时">
   <span class="cp-sec" id="cpSec">距离起立还有</span>
   <div class="cp-row">
@@ -980,7 +980,11 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
     </div>
     <div class="set-row" style="margin-top:8px">
       <label class="tgl"><input type="checkbox" id="tglCountNotify"><span class="tgl-track"></span></label>
-      <span class="hint">倒计时系统提醒：到点时标签页标题＋图标闪烁（钉在任务栏的站点图标同步闪），并弹 Windows 系统通知（首次需授权）</span>
+      <span class="hint">倒计时系统提醒：到点时标签页标题闪烁，并弹 Windows 系统通知（首次需授权）</span>
+    </div>
+    <div class="set-row" id="cpNotifyRow" style="margin-top:6px;display:none">
+      <span class="hint" id="cpNotifyStatus" style="flex:1"></span>
+      <button id="cpNotifyAuth" style="flex:none;border:none;border-radius:14px;padding:5px 10px;background:var(--hover-fill);color:var(--ink-main);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">授权系统通知</button>
     </div>
     <div class="set-row" style="margin-top:8px">
       <span class="hint" style="flex:none">距离起立还有</span>
@@ -989,7 +993,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
       <input type="text" id="countIn2" inputmode="numeric" placeholder="5 或 5:30">
     </div>
     <span class="hint" style="margin-top:6px;display:block;font-size:11.5px;color:var(--ink-weak);font-weight:500">
-      时长填分钟数（如 5），或「分:秒」（如 5:30）；「距离起立还有」与「距离坐下还有」两段轮流执行，超时后负数计时并抖动；时间未到点击窗体询问「你要提前完成这个阶段吗？」，确认切换、取消继续；开启「到时放大提醒」后归零时窗体放大 300% 居中全屏，点击恢复；开启「倒计时系统提醒」后归零时标题/图标闪烁并弹系统通知（授权一次）；关闭总开关时不计时
+      时长填分钟数（如 5），或「分:秒」（如 5:30）；「距离起立还有」与「距离坐下还有」两段轮流执行，超时后负数计时并抖动；时间未到点击窗体询问「你要提前完成这个阶段吗？」，确认切换、取消继续；开启「到时放大提醒」后归零时窗体放大 300% 居中全屏，点击恢复；开启「倒计时系统提醒」后归零时标题闪烁并弹系统通知（授权一次）；关闭总开关时不计时
     </span>
   </div>
   <div class="set-sec">
@@ -1072,7 +1076,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '2.1.1';
+const APP_VER = '2.1.2';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -3430,18 +3434,18 @@ document.getElementById('tglVisits').addEventListener('change', e => { S.showVis
 document.getElementById('tglRb').addEventListener('change', e => { S.rbScroll = e.target.checked; save(); rbReleaseAll(); toast(e.target.checked ? '窗体滚动橡皮筋已开启' : '窗体滚动橡皮筋已关闭'); });
 document.getElementById('tglNet').addEventListener('change', e => { S.showNet = e.target.checked; save(); applyTray(); });
 
-/* ===== 到时系统提醒：标题闪动 + favicon 闪烁（含任务栏钉选站点）+ 系统通知（授权一次） ===== */
-const CP_ICO_N = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#2B3040"/><text x="32" y="46" font-size="40" font-weight="bold" text-anchor="middle" fill="#fff" font-family="Arial">A</text></svg>');
-const CP_ICO_A = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#FF453A"/><text x="32" y="47" font-size="44" font-weight="bold" text-anchor="middle" fill="#fff" font-family="Arial">!</text></svg>');
-let cpFavEl = null, cpFavBase = null, cpFlashTimer = null;
-function cpSetFav(href){
-  if(!cpFavEl){
-    cpFavEl = document.querySelector('link[rel~="icon"]');
-    if(cpFavEl) cpFavBase = cpFavEl.href;
-    else{ cpFavEl = document.createElement('link'); cpFavEl.rel = 'icon'; cpFavEl.type = 'image/svg+xml'; document.head.appendChild(cpFavEl); }
-  }
-  cpFavEl.href = href;
+/* ===== 到时系统提醒：标题闪动 + 系统通知（授权一次） ===== */
+/* 通知图标用 canvas 生成 PNG data URI（SVG data URI 在部分浏览器通知里会被忽略） */
+function cpMakeIco(bg, glyph){
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d');
+  x.fillStyle = bg; x.fillRect(0, 0, 64, 64);
+  x.fillStyle = '#fff'; x.font = 'bold 46px Arial,sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(glyph, 32, 36);
+  return c.toDataURL('image/png');
 }
+const CP_ICO_A = cpMakeIco('#FF453A', '!');
+let cpFlashTimer = null;
 function cpNotifyStart(){
   if(cpFlashTimer) return; // 每个到时沿只提醒一次
   const base = document.title;
@@ -3449,25 +3453,55 @@ function cpNotifyStart(){
   const beat = () => {
     on = !on;
     document.title = on ? ('⏰ ' + (cpIdx === 0 ? '该起立了！' : '该坐下了！')) : base;
-    cpSetFav(on ? CP_ICO_A : (cpFavBase || CP_ICO_N));
   };
   beat(); // 立刻闪第一帧，不等 600ms
   cpFlashTimer = setInterval(beat, 600);
-  // 系统通知（仅已授权时发；未授权不打扰，标题/图标闪动照常）
+  const msg = cpIdx === 0 ? '距离起立还有：时间到，请起立活动一下' : '距离坐下还有：时间到，请坐下休息';
+  toast('⏰ ' + msg); // 页面内兜底提醒：系统通知未授权时也一定看得到
   try{
     if('Notification' in window && Notification.permission === 'granted'){
-      new Notification('站立活动倒计时 · 时间到', {
-        body: cpIdx === 0 ? '距离起立还有：时间到，请起立活动一下' : '距离坐下还有：时间到，请坐下休息',
-        icon: CP_ICO_A, tag: 'atrium-countdown'
-      });
+      new Notification('站立活动倒计时 · 时间到', { body: msg, icon: CP_ICO_A, tag: 'atrium-countdown', requireInteraction: true });
     }
-  }catch(err){}
+  }catch(err){ toast('系统通知发送失败，标题闪动仍生效'); }
 }
 function cpNotifyStop(){
   if(cpFlashTimer){ clearInterval(cpFlashTimer); cpFlashTimer = null; }
   document.title = 'Atrium · 导航 v' + APP_VER;
-  if(cpFavEl) cpSetFav(cpFavBase || CP_ICO_N);
 }
+
+let cpNotifyAsked = false;
+function cpNotifyStatusUI(){
+  const row = document.getElementById('cpNotifyRow'), st = document.getElementById('cpNotifyStatus'), btn = document.getElementById('cpNotifyAuth');
+  row.style.display = S.countNotify ? 'flex' : 'none';
+  if(!('Notification' in window)){
+    st.textContent = '当前浏览器不支持系统通知（标题闪动仍生效）'; btn.style.display = 'none'; return;
+  }
+  const p = Notification.permission;
+  st.textContent = p === 'granted' ? '系统通知：已授权 ✓' : p === 'denied'
+    ? '系统通知：已被浏览器阻止（点地址栏锁图标 → 通知 → 允许）'
+    : cpNotifyAsked ? '授权未完成：请在浏览器弹窗点「允许」；本地文件/预览面板无法授权，请用在线版' : '系统通知：未授权（点右侧按钮授权一次）';
+  btn.style.display = p === 'granted' ? 'none' : '';
+  btn.textContent = p === 'denied' ? '查看授权说明' : cpNotifyAsked ? '重新检测授权' : '授权系统通知';
+}
+function cpNotifyAsk(){
+  if(!('Notification' in window)){ toast('当前浏览器不支持系统通知'); return; }
+  if(Notification.permission === 'denied'){ cpNotifyAsked = true; cpNotifyStatusUI(); toast('浏览器已阻止通知：点地址栏锁图标 → 网站设置 → 通知 → 允许'); return; }
+  if(Notification.permission === 'granted'){ cpNotifyAsked = true; cpNotifyStatusUI(); return; }
+  cpNotifyAsked = true; cpNotifyStatusUI();
+  let done = false;
+  const finish = p => {
+    if(done) return; done = true;
+    cpNotifyStatusUI();
+    toast(p === 'granted' ? '系统通知已授权 ✓' : '授权未完成：标题闪动仍生效；可在地址栏锁图标 → 通知中允许');
+  };
+  try{
+    // 同时兼容 Promise 版与旧回调版；超时再复查一次，防授权弹窗被静默忽略后状态卡在「未授权」
+    const req = Notification.requestPermission(p => finish(p || Notification.permission));
+    if(req && typeof req.then === 'function') req.then(p => finish(p || Notification.permission)).catch(() => finish(Notification.permission));
+    setTimeout(() => { if(!done) finish(Notification.permission); }, 2500);
+  }catch(err){ finish(Notification.permission); }
+}
+document.getElementById('cpNotifyAuth').addEventListener('click', cpNotifyAsk);
 
 /* ===== 站立活动倒计时：两段轮流 → 超时负数计时（红字+抖动）→ 点击进入下一段循环 ===== */
 const countPop = document.getElementById('countPop');
@@ -3589,6 +3623,7 @@ function cpSyncSettingsUI(){
   document.getElementById('tglCount').checked = S.countOn === true;
   document.getElementById('tglCountBig').checked = S.countBig === true;
   document.getElementById('tglCountNotify').checked = S.countNotify === true;
+  cpNotifyStatusUI();
   document.getElementById('countIn1').value = cpFmtDur(S.count1);
   document.getElementById('countIn2').value = cpFmtDur(S.count2);
 }
@@ -3610,15 +3645,11 @@ document.getElementById('tglCountBig').addEventListener('change', e => {
 });
 document.getElementById('tglCountNotify').addEventListener('change', e => {
   S.countNotify = e.target.checked; save();
-  if(!e.target.checked){ cpNotifyStop(); toast('倒计时系统提醒已关闭'); return; }
-  toast('倒计时系统提醒已开启：到点时标题/图标闪烁并弹系统通知');
-  // 首次授权在开关点击手势内请求；拒绝也不影响标题与图标闪动
-  try{
-    if('Notification' in window && Notification.permission === 'default' && typeof Notification.requestPermission === 'function'){
-      const req = Notification.requestPermission();
-      if(req && typeof req.then === 'function') req.then(p => { if(p !== 'granted') toast('系统通知未授权：标题与图标闪动仍生效'); });
-    }
-  }catch(err){}
+  if(!e.target.checked){ cpNotifyStop(); cpNotifyStatusUI(); toast('倒计时系统提醒已关闭'); return; }
+  toast('倒计时系统提醒已开启：到点时标题闪烁并弹系统通知');
+  cpNotifyStatusUI();
+  // 首次授权在开关点击手势内请求；拒绝也不影响标题闪动（统一走 cpNotifyAsk 的状态/兜底）
+  if('Notification' in window && Notification.permission === 'default') cpNotifyAsk();
   // 若当前正处于超时态，立即开始提醒
   if(countPop.classList.contains('on') && cpTimeEl.classList.contains('over')) cpNotifyStart();
 });
