@@ -1090,13 +1090,17 @@ let lastSavedRaw = null; // 启动时读到的原始数据字符串；save() 据
 let S = loadState();
 /* v1.1 预设迁移：首次加载时用百度「我的常用」分组替换旧分组，旧分组自动备份到 localStorage */
 const PRESET_ID = 'baidu-changyong-20261110';
-if(S.presetApplied !== PRESET_ID){
+/* 一次性标记 atrium-nav-preset-done：预设迁移只允许发生一次。曾经发生过的事故：
+   导出的配置不含 presetApplied → 导入后为空 → 下次打开迁移重新触发 → 分组被起步包覆盖。
+   修复于 2026-11-16（导出带上字段 / 导入兜底置位 / 此标记三重防护）。 */
+if(S.presetApplied !== PRESET_ID && !localStorage.getItem('atrium-nav-preset-done')){
   try{ localStorage.setItem('atrium-nav-groups-backup', JSON.stringify({date:new Date().toISOString(), groups:S.groups})); }catch(e){}
   S.groups = JSON.parse(JSON.stringify(DEFAULT_GROUPS));
   S.presetApplied = PRESET_ID;
   save();
   setTimeout(() => toast('已导入百度「我的常用」网址，原分组已自动备份'), 600);
 }
+try{ localStorage.setItem('atrium-nav-preset-done','1'); }catch(e){}
 function loadState(){
   let raw = null;
   try{ raw = localStorage.getItem(LS_KEY); }catch(e){}
@@ -3054,6 +3058,7 @@ function exportConfig(){
   const data = {
     app:'atrium-nav', version:1, appVer:APP_VER,
     exportedAt:new Date().toISOString(),
+    presetApplied:S.presetApplied||PRESET_ID, // 随配置导出：否则旧版备份再导入会重新触发预设迁移覆盖分组
     engineId:S.engineId, engines:S.engines||[],
     groups:S.groups, iconCount:S.iconCount,
     visits:S.visits||{}, zoom:S.zoom,
@@ -3092,8 +3097,10 @@ function importConfig(file){
         trayMute:!!j.trayMute, showVol:j.showVol !== false, showNet:j.showNet !== false, showVisits:j.showVisits === true, dragSort:j.dragSort === true, rbScroll:j.rbScroll !== false,
         hotBoards:(Array.isArray(j.hotBoards) && j.hotBoards.length) ? j.hotBoards.filter(k=>HOT_BOARDS[k]).slice(0,3) : ['baidu'],
         quick:Array.isArray(j.quick) ? j.quick : [{name:'DeepSeek', url:'https://chat.deepseek.com'}],
+        presetApplied:(typeof j.presetApplied === 'string' && j.presetApplied) ? j.presetApplied : PRESET_ID, // 旧版备份无此字段：视为已应用过预设，防止下次打开被迁移覆盖
       });
       memoryWall = null;
+      try{ localStorage.setItem('atrium-nav-preset-done','1'); }catch(e2){} // 双保险：一次性标记，杜绝预设迁移再次触发
       save();
       // 全量刷新
       applyZoom(); applyWallpaper(); renderEngineBtn(); renderEngineMenu();
