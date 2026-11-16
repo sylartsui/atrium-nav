@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v1.5.8</title>
+<title>Atrium · 导航 v1.5.9</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -408,6 +408,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
   height:76px;border:none;border-radius:14px;cursor:pointer;background:transparent;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
   padding:4px;transition:background .15s var(--ease-out);font-family:inherit;
+  min-width:0; /* 网格项最小尺寸清零：否则 1fr 轨道会被 nowrap 长名称的 min-content 撑爆，长名显示不全且溢出面板 */
 }
 .link-tile:hover{position:relative;z-index:5}
 .link-tile img,.link-tile .lt{transition:transform .18s var(--ease-out)}
@@ -961,7 +962,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '1.5.8';
+const APP_VER = '1.5.9';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
