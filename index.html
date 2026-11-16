@@ -851,7 +851,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 
 <div id="tip" class="glass text-halo"></div>
 
-<!-- 站立活动倒计时：两段轮流；超时负数计时+抖动；点击进入下一段（未到时间会询问是否提前完成；「到时放大提醒」开启时归零放大 300% 居中全屏，点击恢复；可在设置开关） -->
+<!-- 站立活动倒计时：两段轮流；超时负数计时+抖动；点击进入下一段（未到时间会询问是否提前完成；「到时放大提醒」开启时归零放大 300% 居中全屏，点击恢复；「倒计时系统提醒」开启时标题/图标闪烁+系统通知；可在设置开关） -->
 <div id="countPop" role="timer" aria-label="站立活动倒计时">
   <span class="cp-sec" id="cpSec">距离起立还有</span>
   <div class="cp-row">
@@ -979,13 +979,17 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
       <span class="hint">到时放大提醒：倒计时归零时窗体放大 300% 居中全屏，点击后恢复原大小并回到原位</span>
     </div>
     <div class="set-row" style="margin-top:8px">
+      <label class="tgl"><input type="checkbox" id="tglCountNotify"><span class="tgl-track"></span></label>
+      <span class="hint">倒计时系统提醒：到点时标签页标题＋图标闪烁（钉在任务栏的站点图标同步闪），并弹 Windows 系统通知（首次需授权）</span>
+    </div>
+    <div class="set-row" style="margin-top:8px">
       <span class="hint" style="flex:none">距离起立还有</span>
       <input type="text" id="countIn1" inputmode="numeric" placeholder="5 或 5:30">
       <span class="hint" style="flex:none">距离坐下还有</span>
       <input type="text" id="countIn2" inputmode="numeric" placeholder="5 或 5:30">
     </div>
     <span class="hint" style="margin-top:6px;display:block;font-size:11.5px;color:var(--ink-weak);font-weight:500">
-      时长填分钟数（如 5），或「分:秒」（如 5:30）；「距离起立还有」与「距离坐下还有」两段轮流执行，超时后负数计时并抖动；时间未到点击窗体询问「你要提前完成这个阶段吗？」，确认切换、取消继续；开启「到时放大提醒」后归零时窗体放大 300% 居中全屏，点击恢复；关闭开关时不计时
+      时长填分钟数（如 5），或「分:秒」（如 5:30）；「距离起立还有」与「距离坐下还有」两段轮流执行，超时后负数计时并抖动；时间未到点击窗体询问「你要提前完成这个阶段吗？」，确认切换、取消继续；开启「到时放大提醒」后归零时窗体放大 300% 居中全屏，点击恢复；开启「倒计时系统提醒」后归零时标题/图标闪烁并弹系统通知（授权一次）；关闭总开关时不计时
     </span>
   </div>
   <div class="set-sec">
@@ -1068,7 +1072,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '2.1.0';
+const APP_VER = '2.1.1';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -1210,7 +1214,7 @@ function normalize(v){
     iconCount:8, visits:{}, wallpaper:'flow', customWall:null, customWallBright:null, solidColor:'#232733',
     hoverScale:1.55, history:[], histOn:true, presetApplied:'', trayMute:false, showVol:true, showNet:true,
     showVisits:false, dragSort:false, rbScroll:true, hotBoards:['baidu'],
-    countOn:false, count1:300, count2:300, countPos:null, countBig:false,
+    countOn:false, count1:300, count2:300, countPos:null, countBig:false, countNotify:false,
     quick:[{name:'DeepSeek', url:'https://chat.deepseek.com'}],
   }, v);
   if(!Array.isArray(s.hotBoards) || !s.hotBoards.length) s.hotBoards = ['baidu'];
@@ -3151,7 +3155,7 @@ function exportConfig(){
     trayMute:!!S.trayMute, showVol:S.showVol !== false, showNet:S.showNet !== false, showVisits:S.showVisits === true, dragSort:S.dragSort === true, rbScroll:S.rbScroll !== false, hotBoards:Array.isArray(S.hotBoards)?S.hotBoards:['baidu'],
     history:S.history||[], histOn:S.histOn !== false,
     quick:S.quick||[],
-    countOn:S.countOn === true, count1:S.count1||300, count2:S.count2||300, countPos:S.countPos||null, countBig:S.countBig === true,
+    countOn:S.countOn === true, count1:S.count1||300, count2:S.count2||300, countPos:S.countPos||null, countBig:S.countBig === true, countNotify:S.countNotify === true,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
@@ -3183,7 +3187,7 @@ function importConfig(file){
         hotBoards:(Array.isArray(j.hotBoards) && j.hotBoards.length) ? j.hotBoards.filter(k=>HOT_BOARDS[k]).slice(0,3) : ['baidu'],
         quick:Array.isArray(j.quick) ? j.quick : [{name:'DeepSeek', url:'https://chat.deepseek.com'}],
         countOn:j.countOn === true, count1:(typeof j.count1 === 'number' && j.count1 > 0) ? j.count1 : 300,
-        count2:(typeof j.count2 === 'number' && j.count2 > 0) ? j.count2 : 300, countPos:j.countPos||null, countBig:j.countBig === true,
+        count2:(typeof j.count2 === 'number' && j.count2 > 0) ? j.count2 : 300, countPos:j.countPos||null, countBig:j.countBig === true, countNotify:j.countNotify === true,
         presetApplied:(typeof j.presetApplied === 'string' && j.presetApplied) ? j.presetApplied : PRESET_ID, // 旧版备份无此字段：视为已应用过预设，防止下次打开被迁移覆盖
       });
       memoryWall = null;
@@ -3426,6 +3430,45 @@ document.getElementById('tglVisits').addEventListener('change', e => { S.showVis
 document.getElementById('tglRb').addEventListener('change', e => { S.rbScroll = e.target.checked; save(); rbReleaseAll(); toast(e.target.checked ? '窗体滚动橡皮筋已开启' : '窗体滚动橡皮筋已关闭'); });
 document.getElementById('tglNet').addEventListener('change', e => { S.showNet = e.target.checked; save(); applyTray(); });
 
+/* ===== 到时系统提醒：标题闪动 + favicon 闪烁（含任务栏钉选站点）+ 系统通知（授权一次） ===== */
+const CP_ICO_N = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#2B3040"/><text x="32" y="46" font-size="40" font-weight="bold" text-anchor="middle" fill="#fff" font-family="Arial">A</text></svg>');
+const CP_ICO_A = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#FF453A"/><text x="32" y="47" font-size="44" font-weight="bold" text-anchor="middle" fill="#fff" font-family="Arial">!</text></svg>');
+let cpFavEl = null, cpFavBase = null, cpFlashTimer = null;
+function cpSetFav(href){
+  if(!cpFavEl){
+    cpFavEl = document.querySelector('link[rel~="icon"]');
+    if(cpFavEl) cpFavBase = cpFavEl.href;
+    else{ cpFavEl = document.createElement('link'); cpFavEl.rel = 'icon'; cpFavEl.type = 'image/svg+xml'; document.head.appendChild(cpFavEl); }
+  }
+  cpFavEl.href = href;
+}
+function cpNotifyStart(){
+  if(cpFlashTimer) return; // 每个到时沿只提醒一次
+  const base = document.title;
+  let on = false;
+  const beat = () => {
+    on = !on;
+    document.title = on ? ('⏰ ' + (cpIdx === 0 ? '该起立了！' : '该坐下了！')) : base;
+    cpSetFav(on ? CP_ICO_A : (cpFavBase || CP_ICO_N));
+  };
+  beat(); // 立刻闪第一帧，不等 600ms
+  cpFlashTimer = setInterval(beat, 600);
+  // 系统通知（仅已授权时发；未授权不打扰，标题/图标闪动照常）
+  try{
+    if('Notification' in window && Notification.permission === 'granted'){
+      new Notification('站立活动倒计时 · 时间到', {
+        body: cpIdx === 0 ? '距离起立还有：时间到，请起立活动一下' : '距离坐下还有：时间到，请坐下休息',
+        icon: CP_ICO_A, tag: 'atrium-countdown'
+      });
+    }
+  }catch(err){}
+}
+function cpNotifyStop(){
+  if(cpFlashTimer){ clearInterval(cpFlashTimer); cpFlashTimer = null; }
+  document.title = 'Atrium · 导航 v' + APP_VER;
+  if(cpFavEl) cpSetFav(cpFavBase || CP_ICO_N);
+}
+
 /* ===== 站立活动倒计时：两段轮流 → 超时负数计时（红字+抖动）→ 点击进入下一段循环 ===== */
 const countPop = document.getElementById('countPop');
 const cpSecEl = document.getElementById('cpSec');
@@ -3463,9 +3506,11 @@ function cpTick(){
   if(over && !cpWasOver && S.countBig) countPop.classList.add('big'); // 到时翻转沿：放大提醒（须先于 shake 判定）
   // 抖动：放大态用 cpBigShake（含居中缩放，等比 3 倍幅度）；减少动态效果时不抖
   countPop.classList.toggle('shake', over && !CP_REDUCE.matches);
+  if(over && !cpWasOver && S.countNotify) cpNotifyStart(); // 到时沿：系统提醒
   cpWasOver = over;
 }
 function cpStartSeg(i){
+  cpNotifyStop(); // 进入新段：停闪、恢复标题/图标
   cpIdx = i; cpStart = Date.now(); cpWasOver = false;
   cpSecEl.textContent = i === 0 ? '距离起立还有' : '距离坐下还有';
   cpTick();
@@ -3489,6 +3534,7 @@ function countRun(){
   cpTimer = setInterval(cpTick, 250);
 }
 function countStop(){ // 关闭状态不计时：停表、隐藏、复位
+  cpNotifyStop();
   countPop.classList.remove('on','shake','big');
   cpTimeEl.classList.remove('over');
   cpWasOver = false;
@@ -3542,6 +3588,7 @@ window.addEventListener('resize', () => { if(countPop.classList.contains('on')) 
 function cpSyncSettingsUI(){
   document.getElementById('tglCount').checked = S.countOn === true;
   document.getElementById('tglCountBig').checked = S.countBig === true;
+  document.getElementById('tglCountNotify').checked = S.countNotify === true;
   document.getElementById('countIn1').value = cpFmtDur(S.count1);
   document.getElementById('countIn2').value = cpFmtDur(S.count2);
 }
@@ -3560,6 +3607,20 @@ document.getElementById('tglCountBig').addEventListener('change', e => {
     countPop.classList.remove('big');
     toast('到时放大提醒已关闭');
   }
+});
+document.getElementById('tglCountNotify').addEventListener('change', e => {
+  S.countNotify = e.target.checked; save();
+  if(!e.target.checked){ cpNotifyStop(); toast('倒计时系统提醒已关闭'); return; }
+  toast('倒计时系统提醒已开启：到点时标题/图标闪烁并弹系统通知');
+  // 首次授权在开关点击手势内请求；拒绝也不影响标题与图标闪动
+  try{
+    if('Notification' in window && Notification.permission === 'default' && typeof Notification.requestPermission === 'function'){
+      const req = Notification.requestPermission();
+      if(req && typeof req.then === 'function') req.then(p => { if(p !== 'granted') toast('系统通知未授权：标题与图标闪动仍生效'); });
+    }
+  }catch(err){}
+  // 若当前正处于超时态，立即开始提醒
+  if(countPop.classList.contains('on') && cpTimeEl.classList.contains('over')) cpNotifyStart();
 });
 function cpApplyDur(which){ // 修改时长：非法回退旧值；合法则保存，运行中重起当前段生效
   const el = document.getElementById(which === 1 ? 'countIn1' : 'countIn2');
