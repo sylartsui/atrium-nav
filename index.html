@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v1.5.9</title>
+<title>Atrium · 导航 v2.0.0</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -246,8 +246,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
   transition:background .15s,color .15s;
 }
 .hot-chips .chip.on{background:var(--accent);color:#fff}
-.hot-chips .chip.dis{opacity:.45;cursor:not-allowed}
-/* ---------- 任务栏 ---------- */
+.hot-chips .chip.dis{opacity:.45;cursor:not-allowed}/* ---------- 任务栏 ---------- */
 #bar{
   position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:150;
   height:var(--bar-h);border-radius:var(--radius-bar);display:flex;align-items:center;
@@ -340,8 +339,13 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* 普通态底部工具条隐藏后，滚动条上下端都要收进圆角安全区且对称（与设置面板 #setScroll 同款 26px） */
 #grpPanel:not(.editing) .panel-head{padding-bottom:0}
 #grpPanel:not(.editing) #grpBody{margin:26px 0}
-#grpBody::-webkit-scrollbar{width:8px}
-#grpBody::-webkit-scrollbar-thumb{background:var(--ink-sep);border-radius:4px}
+/* 滚动条：标准属性优先（Chrome 121+ / Firefox / 新 Safari 走系统 thin 档）；
+   旧引擎不认识标准属性 → @supports not 兜底，仍用原来的 8px 自定义滚动条，零回归 */
+#grpBody{scrollbar-width:thin;scrollbar-color:var(--ink-sep) transparent}
+@supports not (scrollbar-color:auto){
+  #grpBody::-webkit-scrollbar{width:8px}
+  #grpBody::-webkit-scrollbar-thumb{background:var(--ink-sep);border-radius:4px}
+}
 .grp-sec{margin-bottom:6px}
 .grp-head{
   display:flex;align-items:center;height:38px;padding:0 8px;border-radius:12px;gap:8px;
@@ -457,10 +461,13 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 #movePop{position:fixed;z-index:400;width:152px;max-height:280px;overflow:hidden;border-radius:16px;padding:6px;display:none;color:var(--ink-main)}
 /* 内层滚动容器：滚动条只在弹窗内框内滚动，上下不越过圆角、不超出弹窗 */
 #movePop .mp-scroll{max-height:268px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;border-radius:10px;overscroll-behavior:contain}
-#movePop .mp-scroll::-webkit-scrollbar{width:8px}
-#movePop .mp-scroll::-webkit-scrollbar-track{background:transparent}
-#movePop .mp-scroll::-webkit-scrollbar-thumb{background:var(--ink-sep);border-radius:4px}
-#movePop .mp-scroll::-webkit-scrollbar-thumb:hover{background:var(--ink-weak)}
+#movePop .mp-scroll{scrollbar-width:thin;scrollbar-color:var(--ink-sep) transparent}
+@supports not (scrollbar-color:auto){
+  #movePop .mp-scroll::-webkit-scrollbar{width:8px}
+  #movePop .mp-scroll::-webkit-scrollbar-track{background:transparent}
+  #movePop .mp-scroll::-webkit-scrollbar-thumb{background:var(--ink-sep);border-radius:4px}
+  #movePop .mp-scroll::-webkit-scrollbar-thumb:hover{background:var(--ink-weak)}
+}
 #movePop.open{display:block;animation:pop .25s var(--ease-pop)}
 #movePop .mi{flex:none;
   display:flex;align-items:center;gap:8px;width:100%;height:32px;padding:0 10px;border:none;border-radius:10px;
@@ -476,10 +483,13 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 #sortPop.open{display:block;animation:pop .25s var(--ease-pop)}
 #sortPop .sp-top{font-size:11px;font-weight:500;color:var(--ink-weak);padding:6px 10px 8px;display:flex;align-items:center;gap:5px}
 #sortPop .sp-scroll{max-height:262px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;border-radius:10px;overscroll-behavior:contain}
-#sortPop .sp-scroll::-webkit-scrollbar{width:8px}
-#sortPop .sp-scroll::-webkit-scrollbar-track{background:transparent}
-#sortPop .sp-scroll::-webkit-scrollbar-thumb{background:var(--ink-sep);border-radius:4px}
-#sortPop .sp-scroll::-webkit-scrollbar-thumb:hover{background:var(--ink-weak)}
+#sortPop .sp-scroll{scrollbar-width:thin;scrollbar-color:var(--ink-sep) transparent}
+@supports not (scrollbar-color:auto){
+  #sortPop .sp-scroll::-webkit-scrollbar{width:8px}
+  #sortPop .sp-scroll::-webkit-scrollbar-track{background:transparent}
+  #sortPop .sp-scroll::-webkit-scrollbar-thumb{background:var(--ink-sep);border-radius:4px}
+  #sortPop .sp-scroll::-webkit-scrollbar-thumb:hover{background:var(--ink-weak)}
+}
 #sortPop .si{flex:none;display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border-radius:10px;
   color:var(--ink-main);font-size:12.5px;font-weight:500;cursor:grab;user-select:none;transition:background .15s}
 #sortPop .si:hover{background:var(--hover-fill)}
@@ -602,8 +612,11 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* 内层滚动容器：上下外边距 26px = 圆角直边起点，滚动条被限制在直边区域内完整可见；外层保留 .glass 阴影 */
 #setScroll{flex:1;min-height:0;margin:26px 0;overflow-x:hidden;overflow-y:auto;padding:0 22px}
 /* 滚动条与网址导航面板同款 */
-#setScroll::-webkit-scrollbar{width:8px}
-#setScroll::-webkit-scrollbar-thumb{background:var(--ink-sep);border-radius:4px}
+#setScroll{scrollbar-width:thin;scrollbar-color:var(--ink-sep) transparent}
+@supports not (scrollbar-color:auto){
+  #setScroll::-webkit-scrollbar{width:8px}
+  #setScroll::-webkit-scrollbar-thumb{background:var(--ink-sep);border-radius:4px}
+}
 #settings h3{font-size:17px;font-weight:600;margin-bottom:14px}
 .set-sec{margin-bottom:16px}
 .set-sec .lab{font-size:12.5px;font-weight:600;color:var(--ink-sub);margin-bottom:8px}
@@ -681,6 +694,15 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
   #weatherBtn .wx-c{display:none}
   #searchWrap{top:12%}
 }
+/* 无障碍：系统开启「减少动态效果」时，收起所有过渡/动画（弹窗改为瞬间出现），
+   避免前庭敏感用户被滑动、回弹、缩放等动效影响。JS 侧的橡皮筋另行判断同一媒体查询 */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;transition-delay:0s!important;
+    scroll-behavior:auto!important;
+  }
+}
 </style>
 </head>
 <body>
@@ -718,13 +740,13 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 <div id="searchWrap">
   <div id="searchBox" class="glass">
     <div class="s-row1">
-      <button id="engineBtn" title="选择搜索引擎">
+      <button id="engineBtn" title="选择搜索引擎" aria-label="选择搜索引擎">
         <span class="dot" id="engineDot">百</span>
         <span id="engineName">百度</span>
         <span class="arr">▼</span>
       </button>
       <input id="searchInput" type="text" placeholder="搜索，或输入网址后回车打开" autocomplete="off">
-      <button id="searchGo" title="搜索">→</button>
+      <button id="searchGo" title="搜索" aria-label="搜索">→</button>
     </div>
     <div id="histPanel"></div>
     <div id="quickRow"></div>
@@ -738,19 +760,19 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 
 <!-- 任务栏 -->
 <div id="bar" class="glass">
-  <button class="bar-btn" id="grpBtn" title="网址导航">
+  <button class="bar-btn" id="grpBtn" title="网址导航" aria-label="网址导航">
     <span class="g"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
   </button>
   <div id="barIcons"></div>
   <div id="barSep"></div>
-  <button class="bar-btn tray" id="trayVol" title="音量">
+  <button class="bar-btn tray" id="trayVol" title="音量" aria-label="音量">
     <svg class="tray-ic" viewBox="2.9 4.8 17.9 14.4">
       <path d="M3 9v6h4l5 4V5L7 9H3z" fill="currentColor"/>
       <path class="vol-waves" d="M15.5 8.8a4.2 4.2 0 010 6.4M18 6.3a8 8 0 010 11.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
       <line class="vol-slash" x1="15" y1="7" x2="21.5" y2="17.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
     </svg>
   </button>
-  <div class="bar-btn tray" id="trayNet" title="网络">
+  <div class="bar-btn tray" id="trayNet" title="网络" aria-label="网络" role="button" tabindex="0">
     <svg class="tray-ic" viewBox="3.8 4.8 17 14.4">
       <rect class="nb" x="4"    y="14" width="3" height="5"  rx="0.8" fill="currentColor"/>
       <rect class="nb" x="8.5"  y="11" width="3" height="8"  rx="0.8" fill="currentColor"/>
@@ -758,13 +780,13 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
       <rect class="nb" x="17.5" y="5"  width="3" height="14" rx="0.8" fill="currentColor"/>
     </svg>
   </div>
-  <div class="bar-btn" id="clockBtn" title="">
+  <div class="bar-btn" id="clockBtn" title="" aria-label="时钟" role="button" tabindex="0">
     <div class="clk-col">
       <div class="clk-t" id="clkT">--:--:--</div>
       <div class="clk-d" id="clkD">--</div>
     </div>
   </div>
-  <button class="bar-btn" id="weatherBtn" title="天气">
+  <button class="bar-btn" id="weatherBtn" title="天气" aria-label="天气">
     <div class="wx-col">
       <div class="wx-top">
         <span class="wx-ic" id="wxIc"></span>
@@ -781,7 +803,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 <div id="grpPanel" class="glass">
   <div class="panel-head">
     <div class="title">网址导航</div>
-    <button class="head-iconbtn" id="editAllBtn" title="批量编辑：所有分组同时进入编辑状态">
+    <button class="head-iconbtn" id="editAllBtn" title="批量编辑：所有分组同时进入编辑状态" aria-label="批量编辑所有分组">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3,17.25V21h3.75L17.81,9.94l-3.75-3.75L3,17.25z M20.71,7.04c0.39-0.39,0.39-1.02,0-1.41l-2.34-2.34c-0.39-0.39-1.02-0.39-1.41,0 l-3.12,3.12l3.75,3.75L20.71,7.04z"/></svg>
     </button>
   </div>
@@ -791,7 +813,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
     <button id="addGroupBtn">＋ 新建分组</button>
     <button id="dragSortBtn" title="打开后可在分组内拖动网址调整顺序">拖动排序<span class="knob"></span></button>
     <button id="sortGrpBtn" data-sortgrp="1" title="拖动调整分组顺序">⇅ 分组排序</button>
-    <button class="head-iconbtn clear-big" id="clearLinksBtn" title="一键清除所有分组里的全部网址（分组保留）">
+    <button class="head-iconbtn clear-big" id="clearLinksBtn" title="一键清除所有分组里的全部网址（分组保留）" aria-label="清除所有网址">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8,9H16V19H8V9M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z"/></svg>
     </button>
   </div>
@@ -962,7 +984,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '1.5.9';
+const APP_VER = '2.0.0';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -981,28 +1003,79 @@ const PRESET_ENGINES = [
 ];
 /* 百度「我的常用」预设分组（v1.1 导入，# 表示待补内网地址） */
 const PRESET_DATA = [
-  ['常用推荐', [
-    ['百度', 'https://www.baidu.com'],
-    ['GitHub', 'https://github.com'],
-    ['知乎', 'https://www.zhihu.com'],
-    ['哔哩哔哩', 'https://www.bilibili.com'],
-    ['DeepSeek', 'https://chat.deepseek.com'],
-    ['淘宝', 'https://www.taobao.com'],
-    ['京东', 'https://www.jd.com'],
-    ['微博', 'https://weibo.com'],
-    ['小红书', 'https://www.xiaohongshu.com'],
-    ['豆瓣', 'https://www.douban.com'],
-    ['网易云音乐', 'https://music.163.com'],
-    ['腾讯视频', 'https://v.qq.com'],
-    ['抖音', 'https://www.douyin.com'],
+  ['百福业务', [
+    ['百福新系统','http://172.16.10.71/businessManagement/businessRegister'],
+    ['百福内测系统','#'],
+    ['百福查询后台','#'],
+    ['百福新查询','http://172.16.10.88:8008'],
+    ['网站后台','http://47.103.158.0/cms/'],
+    ['百福网站','https://www.ees.sh.cn'],
+    ['百福报关查询','#'],
+    ['百福报关归档','#'],
+    ['百福航班状态','#'],
+    ['百福照片系统','#'],
+    ['EES客户网站','#'],
+    ['AEO CRE','#'],
   ]],
-  ['实用工具', [
-    ['中国天气', 'https://www.weather.com.cn'],
-    ['高德地图', 'https://www.amap.com'],
-    ['12306', 'https://www.12306.cn'],
-    ['菜鸟教程', 'https://www.runoob.com'],
-    ['百度翻译', 'https://fanyi.baidu.com'],
-    ['网络测速', 'https://www.speedtest.cn'],
+  ['监控仓储', [
+    ['梅陇NVR','#'],['室外监控','#'],['1F监控','#'],['2F监控','#'],['3F监控','#'],
+    ['新云监控','#'],['新云贩急','#'],['新GPS','#'],['新云报警系统','#'],
+    ['华飞1号库1','#'],['华飞1号库2','#'],['华飞1号库3','#'],['华飞2号库2','#'],
+    ['1001监控2号','#'],['1001监控1号','#'],
+  ]],
+  ['网络设备', [
+    ['TP-LINK商用云','#'],['梅陇主路由','#'],['梅陇主WiFi','#'],['梅陇2FWiFi','#'],
+    ['梅陇3F备…','#'],['梅陇备用W…','#'],['5号WiFi','#'],['5号主路由','#'],['5号打印机','#'],
+    ['NAS EX2','#'],['NAS Duo','#'],['vpn管理','#'],
+    ['OpenWrt','http://192.168.1.1'],['oPenWrt V…','https://firmware-selector.openwrt.org'],
+    ['Home Assistant','http://homeassistant.local:8123'],['home-assistant官网','https://www.home-assistant.io'],
+    ['dashy.to','https://dashy.to'],['git hacs 历史','https://github.com/hacs'],['Kodi','https://kodi.tv'],
+    ['贝锐蒲公英','https://pgy.oray.com'],['贝锐花生壳','https://hsk.oray.com'],
+    ['DS920','http://192.168.1.60:5000'],['DS920 Flo…','http://192.168.1.60/photo'],['WD云','https://os5.mycloud.com'],
+  ]],
+  ['查询工具', [
+    ['HS查询','https://www.hsbianma.com'],['三字码查询','https://www.variflight.com'],
+    ['经纬度获取','https://api.map.baidu.com/lbsapi/getpoint/index.html'],
+    ['二维码制作','https://cli.im'],['MOBI转换','https://www.convertio.co/zh/'],
+    ['百度翻译','https://fanyi.baidu.com'],['网络测速','https://www.speedtest.cn'],
+    ['手柄测试','https://gamepad-tester.com'],['函数公式图像','https://www.desmos.com/calculator?lang=zh-CN'],
+    ['信用公示平台','https://www.gsxt.gov.cn'],['DeepSeek','https://chat.deepseek.com'],['即梦AI','https://jimeng.jianying.com'],
+  ]],
+  ['天气地图', [
+    ['气象云图','http://www.nmc.cn'],['天气','https://www.weather.com.cn'],
+    ['google地图','https://maps.google.com'],['阿里云地图','https://www.amap.com'],
+  ]],
+  ['云盘邮箱', [
+    ['百度网盘','https://pan.baidu.com'],['QQ邮箱','https://mail.qq.com'],
+    ['Hotmail','https://outlook.live.com/owa/'],['icloud','https://www.icloud.com'],
+    ['Synology ID','https://account.synology.com'],
+  ]],
+  ['数码购物', [
+    ['苹果官网','https://www.apple.com.cn'],['苹果香港官网','https://www.apple.com/hk/'],
+    ['苹果系统状态','https://www.apple.com.cn/support/systemstatus/'],['小米官网','https://www.mi.com'],
+    ['京东商城','https://www.jd.com'],['淘宝网','https://www.taobao.com'],['亚马逊','https://www.amazon.com'],
+    ['NIKE','https://www.nike.com.cn'],['宜家','https://www.ikea.cn'],['宜家厨房设计','https://kitchenplanner.ikea.cn'],
+    ['慢慢买','https://www.manmanbuy.com'],['历史价格','https://www.gwdang.com'],
+    ['StartMyCar','https://www.startmycar.com'],['装机网站','https://www.lotpc.com'],
+    ['汽车之家','https://www.autohome.com.cn'],['爱卡汽车网','https://www.xcar.com.cn'],
+    ['太平洋汽车网','https://www.pcauto.com.cn'],['太平洋电脑网','https://www.pconline.com.cn'],
+    ['Creative Cloud','https://www.adobe.com/creativecloud.html'],
+  ]],
+  ['影视资源', [
+    ['电影天堂','https://www.dygod.net'],['高清网','#'],['歌曲海','#'],['电子书下载','https://www.jiumodiary.com'],
+    ['迅雷离线','https://lixian.vip.xunlei.com'],['土豆网','https://www.tudou.com'],
+    ['1337X','https://1337x.to'],['1337x2','https://1337x.st'],['RARBG','https://rargb.to'],['RARBG mi…','https://rarbgmirrored.org'],
+    ['海盗湾','https://thepiratebay.org'],['yts.mx','https://yts.mx'],['EZTV','https://eztv.re'],['TGX','https://torrentgalaxy.to'],
+    ['bt-tt','#'],['动漫BT下载','#'],['人人影视','https://www.yyets.com'],['漫喵动漫','#'],['OP Fans','#'],
+    ['subhd.tv','https://subhd.tv'],['SUBHDcc','https://subhd.cc'],['SUBHDme','https://subhd.me'],
+    ['字幕库','https://www.zimuku.org'],['中文字幕网','#'],['小调网','#'],
+  ]],
+  ['社区兴趣', [
+    ['微博','https://weibo.com'],['虎扑社区','https://bbs.hupu.com'],['篱笆网','https://www.liba.com'],
+    ['爱摄影','https://tuchong.com'],['爱稀奇','https://www.ixiqi.com'],['FlightClub','https://www.flightclub.com'],
+    ['东立','https://www.tongli.com.tw'],['海贼王吧','https://tieba.baidu.com/f?kw=%E6%B5%B7%E8%B4%BC%E7%8E%8B&ie=utf-8'],
+    ['DLL库','https://cn.dll-files.com'],['软件下载','https://www.ghxi.com'],['破解','#'],
+    ['西贴','#'],['大理全球管理','#'],['Ecip Games','#'],
   ]],
 ];
 const DEFAULT_GROUPS = PRESET_DATA.map((g, i) => ({
@@ -1010,7 +1083,15 @@ const DEFAULT_GROUPS = PRESET_DATA.map((g, i) => ({
   links:g[1].map((l, j) => ({id:'pg'+(i+1)+'_'+(j+1), name:l[0], url:l[1]})),
 }));
 let S = loadState();
-/* 无预设迁移：新用户使用内置常用网址起步包 */
+/* v1.1 预设迁移：首次加载时用百度「我的常用」分组替换旧分组，旧分组自动备份到 localStorage */
+const PRESET_ID = 'baidu-changyong-20261110';
+if(S.presetApplied !== PRESET_ID){
+  try{ localStorage.setItem('atrium-nav-groups-backup', JSON.stringify({date:new Date().toISOString(), groups:S.groups})); }catch(e){}
+  S.groups = JSON.parse(JSON.stringify(DEFAULT_GROUPS));
+  S.presetApplied = PRESET_ID;
+  save();
+  setTimeout(() => toast('已导入百度「我的常用」网址，原分组已自动备份'), 600);
+}
 function loadState(){
   try{
     const v = JSON.parse(localStorage.getItem(LS_KEY));
@@ -1061,7 +1142,7 @@ function setZoom(v, persist=true){
   if(persist) save();
   applyZoom();
 }
-zoomVal.addEventListener('keydown', e => { if(e.key==='Enter'){ e.target.blur(); }}); // 回车统一应用（applyNumInputs）
+zoomVal.addEventListener('keydown', e => { if(e.key==='Enter' && !e.isComposing && e.keyCode!==229){ e.target.blur(); }}); // 回车统一应用（applyNumInputs）；isComposing 守卫避免中文输入法选词回车误触发
 document.getElementById('zoomMinus').onclick = () => setZoom(S.zoom - 5);
 document.getElementById('zoomPlus').onclick  = () => setZoom(S.zoom + 5);
 document.getElementById('zoomAdapt').onclick = () => setZoom(100);
@@ -1249,7 +1330,7 @@ function doSearch(){
   closeHist();
 }
 document.getElementById('searchGo').onclick = doSearch;
-searchInput.addEventListener('keydown', e => { if(e.key === 'Enter') doSearch(); });
+searchInput.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) doSearch(); }); // 输入法选词回车不触发搜索
 
 /* ================= 搜索历史 ================= */
 function addHistory(q){
@@ -1323,7 +1404,7 @@ searchInput.addEventListener('focus', () => {
   toggleEngineMenu(false);
   openHist();
 });
-searchInput.addEventListener('keydown', e => { if(e.key === 'Escape') closeHist(); });
+searchInput.addEventListener('keydown', e => { if(e.key === 'Escape'){ closeHist(); e.stopPropagation(); } }); // 先关搜索历史，不再继续关面板
 addEventListener('click', e => {
   if(histOpen && !histPanel.contains(e.target) && e.target !== searchInput) closeHist();
 });
@@ -1720,7 +1801,7 @@ function renderBarIcons(){
   const links = topLinks();
   barIcons.innerHTML = links.map(l => {
     let host = ''; try{ host = new URL(l.url).hostname; }catch(e){}
-    return `<button class="bar-ic" data-url="${esc(l.url)}" data-name="${esc(l.name)}" data-host="${esc(host)}">
+    return `<button class="bar-ic" data-url="${esc(l.url)}" data-name="${esc(l.name)}" data-host="${esc(host)}" aria-label="${esc(l.name)}">
       ${faviconEl(l, 'lt')}
     </button>`;
   }).join('');
@@ -1971,10 +2052,10 @@ function openMovePop(anchor, lid){
   if(!hit) return;
   moveCtx = hit;
   const others = S.groups.filter(x => x.id !== hit.g.id);
-  const body = others.length
+  movePop.innerHTML = others.length
     ? others.map(x => `<button class="mi" data-mvto="${x.id}"><span class="nm">${esc(x.name)}</span><span class="cnt">${x.links.length}</span></button>`).join('')
     : '<div class="empty">没有其他分组可移动</div>';
-  movePop.innerHTML = '<div class="mp-scroll">' + body + '</div>';
+  movePop.innerHTML = '<div class="mp-scroll">' + movePop.innerHTML + '</div>';
   movePop.classList.add('open');
   const r = anchor.getBoundingClientRect();
   const pw = 152;
@@ -2000,6 +2081,7 @@ movePop.addEventListener('click', e => {
 });
 addEventListener('click', e => {
   if(movePop.classList.contains('open') && !movePop.contains(e.target) && !e.target.closest('[data-movebtn]')) closeMovePop();
+
 });
 
 /* ---------- 分组排序弹窗（拖动调序） ---------- */
@@ -2372,7 +2454,7 @@ iconPop.addEventListener('click', e => {
   }
 });
 iconPop.addEventListener('keydown', e => {
-  if(e.key === 'Enter' && e.target.id === 'iconUrlInput' && iconCtx){
+  if(e.key === 'Enter' && !e.isComposing && e.keyCode !== 229 && e.target.id === 'iconUrlInput' && iconCtx){
     let u = e.target.value.trim();
     if(!u) return;
     if(!/^(https?:|data:)/i.test(u)) u = 'https://' + u;
@@ -2816,6 +2898,7 @@ setInterval(() => { if(sunPanel.classList.contains('open')) renderSun(); }, 3000
    事件委托到 document：可覆盖动态重建的滚动容器（历史列表、移到弹层每次打开重建）；
    热搜为横向拖动轨道，不适用。设置里的「窗体滚动橡皮筋特效」开关（S.rbScroll，默认开）整体控制 */
 const RB_MAX = 17; // 最大拉伸像素（原 26，缩短 1/3）
+const RB_REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)'); // 系统「减少动态效果」时不做拉伸
 const RB_SEL = '#grpBody, #setScroll, #histPanel .hist-list, #movePop .mp-scroll, #sortPop .sp-scroll';
 const rbStates = new WeakMap(); // 滚动容器 → {y, timer}
 function rbSet(gb, y, spring){
@@ -2833,6 +2916,7 @@ document.addEventListener('wheel', e => {
   const gb = e.target && e.target.closest ? e.target.closest(RB_SEL) : null;
   if(!gb) return;
   if(S.rbScroll === false){ rbRelease(gb); return; } // 开关关闭：即时收起已有拉伸
+  if(RB_REDUCE.matches){ rbRelease(gb); return; }   // 系统要求减少动效：不做拉伸
   let st = rbStates.get(gb);
   if(!st){ st = { y: 0, timer: null }; rbStates.set(gb, st); }
   // 仅在已到边界还继续同向滚动时拉伸
@@ -2872,7 +2956,7 @@ function closeSettings(){ mask.classList.remove('open'); settings.classList.remo
 document.getElementById('gearBtn').onclick = e => { e.stopPropagation(); openSettings(); };
 document.getElementById('settingsDone').onclick = closeSettings;
 mask.onclick = closeSettings;
-/* 三处数字输入（图标数量 / 悬停放大 / 页面缩放）：输完点「确定」统一应用 */
+/* 三处数字输入（图标数量 / 悬停放大 / 页面缩放）：统一应用函数（图标数量另有点 ↻ 单独应用） */
 function applyNumInputs(){
   const ic = document.getElementById('setIconCount');
   S.iconCount = Math.max(1, Math.min(20, Math.round(parseFloat(ic.value)||8)));
@@ -3077,7 +3161,7 @@ function renderWallThumbs(){
       }
     });
     hex.addEventListener('change', () => renderWallThumbs());
-    hex.addEventListener('keydown', ev => { if(ev.key === 'Enter') hex.blur(); });
+    hex.addEventListener('keydown', ev => { if(ev.key === 'Enter' && !ev.isComposing && ev.keyCode !== 229) hex.blur(); });
   }
 }
 
@@ -3208,6 +3292,19 @@ renderEngineBtn(); renderEngineMenu();
   }
   if(n){ save(); console.log('首字图标已落盘:', n + ' 个'); }
 }
+/* ================= 键盘可达性：Esc 逐层关闭最上层浮层 ================= */
+/* 顺序由内到外：图标弹层 → 移到分组 → 分组排序 → 搜索引擎菜单 → 设置 → 网址导航面板。
+   每层只关自己并 return，再按一次 Esc 才退到下一层，避免一次按键关掉一整条链路 */
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape' || e.defaultPrevented || e.isComposing) return;
+  if(document.getElementById('iconPop').classList.contains('open')){ closeIconPop(); return; }
+  if(document.getElementById('movePop').classList.contains('open')){ closeMovePop(); return; }
+  if(document.getElementById('sortPop').classList.contains('open')){ closeSortPop(); return; }
+  if(engineOpen){ toggleEngineMenu(false); return; }
+  if(document.getElementById('settings').classList.contains('open')){ closeSettings(); return; }
+  if(document.getElementById('grpPanel').classList.contains('open')){ setGrpPanel(false); return; }
+});
+
 renderBarIcons(); renderGroupPanel();
 renderQuick();
 applyWallpaper();
