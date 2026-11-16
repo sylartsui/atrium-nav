@@ -936,9 +936,11 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
     <div class="set-row">
       <button class="set-btn" id="exportCfg">⬇ 导出配置</button>
       <button class="set-btn" id="importCfg">⬆ 导入配置</button>
+      <button class="set-btn" id="restorePrev" title="回到最近一次保存前的版本（保存前自动留底，可反复切换）">⟲ 恢复上一版</button>
     </div>
     <span class="hint" style="margin-top:8px;display:block;font-size:11.5px;color:var(--ink-weak);font-weight:500">
-      包含搜索引擎、分组网址、访问量、图标数量、缩放与墙纸，导出为 JSON 文件，可在其他电脑导入恢复
+      包含搜索引擎、分组网址、访问量、图标数量、缩放与墙纸，导出为 JSON 文件，可在其他电脑导入恢复<br>
+      每次保存前会自动留底上一版，「⟲ 恢复上一版」可随时回退误删误改（再点一次即切回）
     </span>
   </div>
   <div class="set-sec">
@@ -1082,6 +1084,7 @@ const DEFAULT_GROUPS = PRESET_DATA.map((g, i) => ({
   id:'pg'+(i+1), name:g[0],
   links:g[1].map((l, j) => ({id:'pg'+(i+1)+'_'+(j+1), name:l[0], url:l[1]})),
 }));
+let lastSavedRaw = null; // 启动时读到的原始数据字符串；save() 据此把上一版留底到 -prev，防覆盖型丢失（须在 loadState 调用前声明）
 let S = loadState();
 /* v1.1 预设迁移：首次加载时用百度「我的常用」分组替换旧分组，旧分组自动备份到 localStorage */
 const PRESET_ID = 'baidu-changyong-20261110';
@@ -1093,10 +1096,26 @@ if(S.presetApplied !== PRESET_ID){
   setTimeout(() => toast('已导入百度「我的常用」网址，原分组已自动备份'), 600);
 }
 function loadState(){
-  try{
-    const v = JSON.parse(localStorage.getItem(LS_KEY));
-    if(v && v.groups) return normalize(v);
-  }catch(e){}
+  let raw = null;
+  try{ raw = localStorage.getItem(LS_KEY); }catch(e){}
+  if(raw){
+    lastSavedRaw = raw;
+    try{
+      const v = JSON.parse(raw);
+      if(v && v.groups) return normalize(v);
+    }catch(e){
+      // 数据损坏（半截 JSON 等）：先把原始字符串原样留底，再按默认启动——避免后续保存把唯一证据抹掉
+      try{ localStorage.setItem(LS_KEY + '-corrupt', raw); }catch(e2){}
+    }
+  }else{
+    // 主键读不到，但上次明明保存过 → 多半是浏览器异常退出或清了站点数据：提示先抢救，别急着改
+    let present = null;
+    try{ present = localStorage.getItem(LS_KEY + '-present'); }catch(e2){}
+    if(present){
+      setTimeout(() => toast('⚠ 未读到本地导航数据（浏览器可能异常退出或清理了数据）。先别修改！'), 800);
+      setTimeout(() => toast('请立即在设置里「⬆ 导入配置」恢复，JSON 在下载目录 atrium-nav-config-*.json'), 3400);
+    }
+  }
   return normalize({});
 }
 function normalize(v){
@@ -1112,13 +1131,25 @@ function normalize(v){
 }
 let memoryWall = null;   // 自定义壁纸超出 localStorage 配额时仅本次会话有效
 function save(){
-  try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }
+  const snap = JSON.stringify(S);
+  try{
+    // 数据保险 ①：与上一版不同才保存时，先把上一版原样留底到 -prev（配额不足则跳过，不影响主写入）
+    if(lastSavedRaw !== null && lastSavedRaw !== snap){
+      try{ localStorage.setItem(LS_KEY + '-prev', lastSavedRaw); }catch(e3){}
+    }
+    localStorage.setItem(LS_KEY, snap);
+    // 数据保险 ②：写入成功即打哨兵；下次启动若哨兵在而主键没了 → 弹警示提醒先恢复再动手
+    try{ localStorage.setItem(LS_KEY + '-present', String(Date.now())); }catch(e4){}
+    lastSavedRaw = snap;
+  }
   catch(e){
     // 配额不够（多半是自定义壁纸太大）：把壁纸数据从持久化里剔除再试
     try{
       const slim = JSON.parse(JSON.stringify(S));
       if(slim.customWall){ slim.customWall = null; memoryWall = S.customWall; }
       localStorage.setItem(LS_KEY, JSON.stringify(slim));
+      try{ localStorage.setItem(LS_KEY + '-present', String(Date.now())); }catch(e4){}
+      lastSavedRaw = null;
       toast('自定义壁纸体积较大，仅本次会话生效');
     }catch(e2){}
   }
@@ -2946,6 +2977,8 @@ function openSettings(){
   document.getElementById('tglNet').checked = S.showNet !== false;
   document.getElementById('tglVisits').checked = S.showVisits === true;
   document.getElementById('tglRb').checked = S.rbScroll !== false;
+  let hasPrev = false; try{ hasPrev = !!localStorage.getItem(LS_KEY + '-prev'); }catch(e){}
+  document.getElementById('restorePrev').disabled = !hasPrev;
   renderDragSortBtn();
   renderHotChips();
   renderQuickSet();
@@ -3083,6 +3116,21 @@ function importConfig(file){
 }
 document.getElementById('exportCfg').onclick = exportConfig;
 document.getElementById('importCfg').onclick = () => document.getElementById('cfgInput').click();
+/* 数据保险 ③：恢复上一版——把 -prev 换回主键、当前版换到 -prev（可来回切），确认有效才执行 */
+document.getElementById('restorePrev').onclick = () => {
+  let cur = null, prev = null;
+  try{ cur = localStorage.getItem(LS_KEY); prev = localStorage.getItem(LS_KEY + '-prev'); }catch(e){}
+  if(!prev){ toast('没有可恢复的上一版'); return; }
+  let ok = false;
+  try{ const v = JSON.parse(prev); ok = !!(v && v.groups); }catch(e){}
+  if(!ok){ toast('上一版数据无效，无法恢复'); return; }
+  try{
+    if(cur && cur !== prev){ try{ localStorage.setItem(LS_KEY + '-prev', cur); }catch(e2){} } // 当前版换位，可再切回
+    localStorage.setItem(LS_KEY, prev);
+    toast('已恢复上一版，正在刷新…');
+    setTimeout(() => location.reload(), 800);
+  }catch(e){ toast('写入失败：' + ((e && e.name) || '未知')); }
+};
 document.getElementById('cfgInput').addEventListener('change', e => {
   if(e.target.files[0]) importConfig(e.target.files[0]);
   e.target.value = '';
