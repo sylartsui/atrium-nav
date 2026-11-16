@@ -694,11 +694,63 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
   #weatherBtn .wx-c{display:none}
   #searchWrap{top:12%}
 }
+/* ===== 悬浮倒计时窗（两段轮流，超时负数+抖动，点击切换） ===== */
+#countPop{
+  position:fixed;z-index:180;width:10vw;min-width:108px;max-width:176px;
+  padding:9px 8px 11px;border-radius:16px;cursor:grab;user-select:none;-webkit-user-select:none;
+  display:none;flex-direction:column;align-items:center;gap:1px;touch-action:none;
+  background:rgba(30,32,40,.36);
+  backdrop-filter:blur(22px) saturate(1.6);
+  -webkit-backdrop-filter:blur(22px) saturate(1.6);
+  box-shadow:0 10px 34px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.26), inset 0 0 0 1px rgba(255,255,255,.13);
+  color:var(--ink-main);
+}
+#countPop.on{display:flex}
+#countPop.dragging{cursor:grabbing;box-shadow:0 18px 44px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.3), inset 0 0 0 1px rgba(255,255,255,.16)}
+#countPop .cp-sec{font-size:11px;font-weight:600;color:var(--ink-sub);letter-spacing:.1em}
+#countPop .cp-row{display:flex;align-items:baseline;justify-content:center;gap:4px}
+#countPop .cp-time{
+  font-size:clamp(14px,1.9vw,26px);font-weight:800;line-height:1.12;white-space:nowrap;
+  font-variant-numeric:tabular-nums;text-shadow:0 1px 3px rgba(0,0,0,.30);
+}
+#countPop .cp-time.over{color:#FF453A;text-shadow:0 1px 4px rgba(255,69,58,.35)}
+@keyframes cpShake{
+  0%,100%{transform:translate(0,0)}
+  15%{transform:translate(-4px,0)}
+  30%{transform:translate(4px,-2px)}
+  45%{transform:translate(-4px,2px)}
+  60%{transform:translate(3px,1px)}
+  80%{transform:translate(-2px,-1px)}
+}
+#countPop.shake{animation:cpShake .5s linear infinite}
+/* 放大态抖动：把「居中+300%」烘进 keyframes（否则动画 transform 会覆盖 .big 的缩放）；
+   幅度按 3 倍窗体等比放大（translate 排在 scale 之后＝缩放坐标系内位移）；延迟 .32s 先播完放大过渡再无缝衔接 */
+@keyframes cpBigShake{
+  0%,100%{transform:translate(-50%,-50%) scale(3)}
+  15%{transform:translate(-50%,-50%) scale(3) translate(-4px,0)}
+  30%{transform:translate(-50%,-50%) scale(3) translate(4px,-2px)}
+  45%{transform:translate(-50%,-50%) scale(3) translate(-4px,2px)}
+  60%{transform:translate(-50%,-50%) scale(3) translate(3px,1px)}
+  80%{transform:translate(-50%,-50%) scale(3) translate(-2px,-1px)}
+}
+#countPop.big.shake{animation:cpBigShake .5s linear .32s infinite}
+#countPop{transition:transform .32s cubic-bezier(.34,1.4,.64,1)}
+#countPop.big{ /* 到时放大提醒：300% + 全屏居中；点击后移除即恢复原大小原位（原 left/top 内联值仍在） */
+  left:50% !important; top:50% !important;
+  transform:translate(-50%,-50%) scale(3);
+  z-index:600;cursor:pointer;
+}
+#countIn1,#countIn2{
+  width:74px;height:34px;border:none;border-radius:17px;outline:none;text-align:center;
+  background:var(--hover-fill);color:var(--ink-main);font-size:13.5px;font-weight:600;font-family:inherit;
+  font-variant-numeric:tabular-nums;min-width:0;
+}
+#countIn1:focus,#countIn2:focus{background:var(--press-fill)}
 /* 无障碍：系统开启「减少动态效果」时，收起所有过渡/动画（弹窗改为瞬间出现），
    避免前庭敏感用户被滑动、回弹、缩放等动效影响。JS 侧的橡皮筋另行判断同一媒体查询 */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{
-    animation-duration:.01ms!important;animation-iteration-count:1!important;
+    animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important;
     transition-duration:.01ms!important;transition-delay:0s!important;
     scroll-behavior:auto!important;
   }
@@ -798,6 +850,14 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 </div>
 
 <div id="tip" class="glass text-halo"></div>
+
+<!-- 站立活动倒计时：两段轮流；超时负数计时+抖动；点击进入下一段（未到时间会询问是否提前完成；「到时放大提醒」开启时归零放大 300% 居中全屏，点击恢复；可在设置开关） -->
+<div id="countPop" role="timer" aria-label="站立活动倒计时">
+  <span class="cp-sec" id="cpSec">距离起立还有</span>
+  <div class="cp-row">
+    <span class="cp-time" id="cpTime">00:05:00</span>
+  </div>
+</div>
 
 <!-- 网址分组面板 -->
 <div id="grpPanel" class="glass">
@@ -909,6 +969,26 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
     </div>
   </div>
   <div class="set-sec">
+    <div class="lab">站立活动倒计时</div>
+    <div class="set-row">
+      <label class="tgl"><input type="checkbox" id="tglCount"><span class="tgl-track"></span></label>
+      <span class="hint">悬浮站立活动倒计时窗（可拖动摆放；时间未到点击会询问是否提前完成）</span>
+    </div>
+    <div class="set-row" style="margin-top:8px">
+      <label class="tgl"><input type="checkbox" id="tglCountBig"><span class="tgl-track"></span></label>
+      <span class="hint">到时放大提醒：倒计时归零时窗体放大 300% 居中全屏，点击后恢复原大小并回到原位</span>
+    </div>
+    <div class="set-row" style="margin-top:8px">
+      <span class="hint" style="flex:none">距离起立还有</span>
+      <input type="text" id="countIn1" inputmode="numeric" placeholder="5 或 5:30">
+      <span class="hint" style="flex:none">距离坐下还有</span>
+      <input type="text" id="countIn2" inputmode="numeric" placeholder="5 或 5:30">
+    </div>
+    <span class="hint" style="margin-top:6px;display:block;font-size:11.5px;color:var(--ink-weak);font-weight:500">
+      时长填分钟数（如 5），或「分:秒」（如 5:30）；「距离起立还有」与「距离坐下还有」两段轮流执行，超时后负数计时并抖动；时间未到点击窗体询问「你要提前完成这个阶段吗？」，确认切换、取消继续；开启「到时放大提醒」后归零时窗体放大 300% 居中全屏，点击恢复；关闭开关时不计时
+    </span>
+  </div>
+  <div class="set-sec">
     <div class="lab">热搜榜</div>
     <div class="set-row" style="flex-direction:column;align-items:flex-start;gap:8px">
       <span class="hint" style="flex:none">选择任务栏滚动的热搜榜单，最多选 3 个</span>
@@ -988,7 +1068,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '2.0.1';
+const APP_VER = '2.1.0';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -1130,9 +1210,12 @@ function normalize(v){
     iconCount:8, visits:{}, wallpaper:'flow', customWall:null, customWallBright:null, solidColor:'#232733',
     hoverScale:1.55, history:[], histOn:true, presetApplied:'', trayMute:false, showVol:true, showNet:true,
     showVisits:false, dragSort:false, rbScroll:true, hotBoards:['baidu'],
+    countOn:false, count1:300, count2:300, countPos:null, countBig:false,
     quick:[{name:'DeepSeek', url:'https://chat.deepseek.com'}],
   }, v);
   if(!Array.isArray(s.hotBoards) || !s.hotBoards.length) s.hotBoards = ['baidu'];
+  if(typeof s.count1 !== 'number' || !(s.count1 > 0)) s.count1 = 300;
+  if(typeof s.count2 !== 'number' || !(s.count2 > 0)) s.count2 = 300;
   return s;
 }
 let memoryWall = null;   // 自定义壁纸超出 localStorage 配额时仅本次会话有效
@@ -2983,6 +3066,7 @@ function openSettings(){
   document.getElementById('tglNet').checked = S.showNet !== false;
   document.getElementById('tglVisits').checked = S.showVisits === true;
   document.getElementById('tglRb').checked = S.rbScroll !== false;
+  cpSyncSettingsUI();
   let hasPrev = false; try{ hasPrev = !!localStorage.getItem(LS_KEY + '-prev'); }catch(e){}
   document.getElementById('restorePrev').disabled = !hasPrev;
   renderDragSortBtn();
@@ -3067,6 +3151,7 @@ function exportConfig(){
     trayMute:!!S.trayMute, showVol:S.showVol !== false, showNet:S.showNet !== false, showVisits:S.showVisits === true, dragSort:S.dragSort === true, rbScroll:S.rbScroll !== false, hotBoards:Array.isArray(S.hotBoards)?S.hotBoards:['baidu'],
     history:S.history||[], histOn:S.histOn !== false,
     quick:S.quick||[],
+    countOn:S.countOn === true, count1:S.count1||300, count2:S.count2||300, countPos:S.countPos||null, countBig:S.countBig === true,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
@@ -3097,6 +3182,8 @@ function importConfig(file){
         trayMute:!!j.trayMute, showVol:j.showVol !== false, showNet:j.showNet !== false, showVisits:j.showVisits === true, dragSort:j.dragSort === true, rbScroll:j.rbScroll !== false,
         hotBoards:(Array.isArray(j.hotBoards) && j.hotBoards.length) ? j.hotBoards.filter(k=>HOT_BOARDS[k]).slice(0,3) : ['baidu'],
         quick:Array.isArray(j.quick) ? j.quick : [{name:'DeepSeek', url:'https://chat.deepseek.com'}],
+        countOn:j.countOn === true, count1:(typeof j.count1 === 'number' && j.count1 > 0) ? j.count1 : 300,
+        count2:(typeof j.count2 === 'number' && j.count2 > 0) ? j.count2 : 300, countPos:j.countPos||null, countBig:j.countBig === true,
         presetApplied:(typeof j.presetApplied === 'string' && j.presetApplied) ? j.presetApplied : PRESET_ID, // 旧版备份无此字段：视为已应用过预设，防止下次打开被迁移覆盖
       });
       memoryWall = null;
@@ -3114,6 +3201,8 @@ function importConfig(file){
       document.getElementById('tglNet').checked = S.showNet !== false;
   document.getElementById('tglVisits').checked = S.showVisits === true;
   document.getElementById('tglRb').checked = S.rbScroll !== false;
+  cpSyncSettingsUI();
+  if(S.countOn === true){ countRun(); } else { countStop(); } // 导入配置后同步倒计时窗开关状态
   rbReleaseAll();
   renderHotChips();
       toast('配置已导入');
@@ -3337,6 +3426,156 @@ document.getElementById('tglVisits').addEventListener('change', e => { S.showVis
 document.getElementById('tglRb').addEventListener('change', e => { S.rbScroll = e.target.checked; save(); rbReleaseAll(); toast(e.target.checked ? '窗体滚动橡皮筋已开启' : '窗体滚动橡皮筋已关闭'); });
 document.getElementById('tglNet').addEventListener('change', e => { S.showNet = e.target.checked; save(); applyTray(); });
 
+/* ===== 站立活动倒计时：两段轮流 → 超时负数计时（红字+抖动）→ 点击进入下一段循环 ===== */
+const countPop = document.getElementById('countPop');
+const cpSecEl = document.getElementById('cpSec');
+const cpTimeEl = document.getElementById('cpTime');
+const CP_REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)');
+let cpIdx = 0;      // 当前段：0=段①，1=段②
+let cpStart = 0;    // 当前段起始时间戳（时间戳差值计时，不受间隔漂移影响）
+let cpTimer = null;
+let cpWasOver = false;  // 上一 tick 是否已超时（捕捉「刚好到时」的翻转沿）
+const cpDur = () => (cpIdx === 0 ? S.count1 : S.count2) || 300;
+function cpParseDur(str){ // '5'→300 秒（分钟）；'5:30'→330；'0:05'→5。非法返回 null
+  const t = String(str || '').trim();
+  let m = t.match(/^(\d{1,3})$/), h = t.match(/^(\d{1,2}):([0-5]?\d)$/);
+  if(m) return Math.max(1, +m[1] * 60);
+  if(h) return Math.max(1, +h[1] * 60 + +h[2]);
+  return null;
+}
+function cpFmtDur(sec){ // 300→'5'，330→'5:30'（设置输入框回显用）
+  if(sec % 60 === 0) return String(sec / 60);
+  return Math.floor(sec/60) + ':' + String(sec%60).padStart(2,'0');
+}
+function cpFmt(remain){ // 带符号 时:分:秒
+  const neg = remain < 0 ? '-' : '';
+  const a = Math.abs(remain);
+  const h = Math.floor(a / 3600), m = Math.floor(a % 3600 / 60), s = a % 60;
+  const hh = h > 99 ? String(h) : String(h).padStart(2,'0');
+  return neg + hh + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+function cpTick(){
+  const elapsed = Math.floor((Date.now() - cpStart) / 1000);
+  const remain = cpDur() - elapsed;
+  cpTimeEl.textContent = cpFmt(remain);
+  const over = remain < 0;
+  cpTimeEl.classList.toggle('over', over);
+  if(over && !cpWasOver && S.countBig) countPop.classList.add('big'); // 到时翻转沿：放大提醒（须先于 shake 判定）
+  // 抖动：放大态用 cpBigShake（含居中缩放，等比 3 倍幅度）；减少动态效果时不抖
+  countPop.classList.toggle('shake', over && !CP_REDUCE.matches);
+  cpWasOver = over;
+}
+function cpStartSeg(i){
+  cpIdx = i; cpStart = Date.now(); cpWasOver = false;
+  cpSecEl.textContent = i === 0 ? '距离起立还有' : '距离坐下还有';
+  cpTick();
+}
+function cpPlace(){ // 应用/钳制窗体位置（存像素，视口变化自动收回）；放大态跳过（.big 以 !important 居中，勿用放大尺寸污染内联位置）
+  if(countPop.classList.contains('big')) return;
+  const r = countPop.getBoundingClientRect();
+  const p = (S.countPos && typeof S.countPos.x === 'number') ? S.countPos : null;
+  let x = p ? p.x : innerWidth - r.width - 24;
+  let y = p ? p.y : 118;
+  x = Math.min(Math.max(8, x), Math.max(8, innerWidth - r.width - 8));
+  y = Math.min(Math.max(8, y), Math.max(8, innerHeight - r.height - 8));
+  countPop.style.left = x + 'px';
+  countPop.style.top = y + 'px';
+}
+function countRun(){
+  countPop.classList.add('on');
+  cpPlace();
+  cpStartSeg(0);
+  if(cpTimer) clearInterval(cpTimer);
+  cpTimer = setInterval(cpTick, 250);
+}
+function countStop(){ // 关闭状态不计时：停表、隐藏、复位
+  countPop.classList.remove('on','shake','big');
+  cpTimeEl.classList.remove('over');
+  cpWasOver = false;
+  if(cpTimer){ clearInterval(cpTimer); cpTimer = null; }
+}
+/* 拖动摆放：位移 ≤6px 视为点击（切段），否则拖动并保存位置 */
+let cpDrag = null;
+countPop.addEventListener('pointerdown', e => {
+  if(e.pointerType === 'mouse' && e.button !== 0) return;
+  const r = countPop.getBoundingClientRect();
+  cpDrag = { dx: e.clientX - r.left, dy: e.clientY - r.top, sx: e.clientX, sy: e.clientY, moved: false };
+  try{ countPop.setPointerCapture(e.pointerId); }catch(err){}
+});
+countPop.addEventListener('pointermove', e => {
+  if(!cpDrag || countPop.classList.contains('big')) return; // 放大态不拖动，留待点击恢复
+  if(Math.abs(e.clientX - cpDrag.sx) + Math.abs(e.clientY - cpDrag.sy) > 6) cpDrag.moved = true;
+  if(!cpDrag.moved) return;
+  countPop.classList.add('dragging');
+  const r = countPop.getBoundingClientRect();
+  let x = e.clientX - cpDrag.dx, y = e.clientY - cpDrag.dy;
+  x = Math.min(Math.max(8, x), Math.max(8, innerWidth - r.width - 8));
+  y = Math.min(Math.max(8, y), Math.max(8, innerHeight - r.height - 8));
+  countPop.style.left = x + 'px';
+  countPop.style.top = y + 'px';
+});
+countPop.addEventListener('pointerup', () => {
+  if(!cpDrag) return;
+  const moved = cpDrag.moved;
+  cpDrag = null;
+  countPop.classList.remove('dragging');
+  if(moved){
+    const r = countPop.getBoundingClientRect();
+    S.countPos = { x: Math.round(r.left), y: Math.round(r.top) };
+    save();
+  }else{
+    // 放大态点击 → 恢复原大小并回到原位：内联 left/top 一直保留原值，移除 .big 即回位，
+    // transform 0.32s 收缩动画在原位播放；过渡结束后再钳制一次（防放大期间视口变化导致越界）
+    if(countPop.classList.contains('big')){
+      countPop.classList.remove('big');
+      setTimeout(() => { if(countPop.classList.contains('on')) cpPlace(); }, 380);
+    }
+    // 点击 → 下一段（①→②→① 循环）；时间未到时先询问，取消则继续当前计时
+    const remain = cpDur() - Math.floor((Date.now() - cpStart) / 1000);
+    if(remain > 0 && !confirm('你要提前完成这个阶段吗？')) return;
+    cpStartSeg((cpIdx + 1) % 2);
+  }
+});
+countPop.addEventListener('pointercancel', () => { cpDrag = null; countPop.classList.remove('dragging'); });
+window.addEventListener('resize', () => { if(countPop.classList.contains('on')) cpPlace(); });
+/* 设置面板联动 */
+function cpSyncSettingsUI(){
+  document.getElementById('tglCount').checked = S.countOn === true;
+  document.getElementById('tglCountBig').checked = S.countBig === true;
+  document.getElementById('countIn1').value = cpFmtDur(S.count1);
+  document.getElementById('countIn2').value = cpFmtDur(S.count2);
+}
+document.getElementById('tglCount').addEventListener('change', e => {
+  S.countOn = e.target.checked; save();
+  if(e.target.checked){ countRun(); toast('站立活动倒计时已开启（点击窗体切换段，未到时间会询问）'); }
+  else{ countStop(); toast('站立活动倒计时已关闭（不再计时）'); }
+});
+document.getElementById('tglCountBig').addEventListener('change', e => {
+  S.countBig = e.target.checked; save();
+  if(e.target.checked){
+    // 开启时若当前恰好处于超时态，立即放大
+    if(countPop.classList.contains('on') && cpTimeEl.classList.contains('over')) countPop.classList.add('big');
+    toast('到时放大提醒已开启：归零时窗体放大 300% 居中全屏');
+  }else{
+    countPop.classList.remove('big');
+    toast('到时放大提醒已关闭');
+  }
+});
+function cpApplyDur(which){ // 修改时长：非法回退旧值；合法则保存，运行中重起当前段生效
+  const el = document.getElementById(which === 1 ? 'countIn1' : 'countIn2');
+  const v = cpParseDur(el.value);
+  if(v == null){ el.value = cpFmtDur(which === 1 ? S.count1 : S.count2); toast('时长格式：分钟数，或「分:秒」（如 5:30）'); return; }
+  if(which === 1) S.count1 = v; else S.count2 = v;
+  el.value = cpFmtDur(v);
+  save();
+  if(countPop.classList.contains('on')) cpStartSeg(cpIdx);
+}
+for(const [id, which] of [['countIn1',1],['countIn2',2]]){
+  const el = document.getElementById(id);
+  el.addEventListener('blur', () => cpApplyDur(which));
+  el.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.isComposing && e.keyCode !== 229){ e.target.blur(); } }); // 输入法选词回车不应用
+}
+
 renderEngineBtn(); renderEngineMenu();
 { // 清理旧版自动创建的空「我的收藏夹」分组（非空则保留防误删）
   const i = S.groups.findIndex(x => x.name === '我的收藏夹');
@@ -3364,6 +3603,7 @@ document.addEventListener('keydown', e => {
 
 renderBarIcons(); renderGroupPanel();
 renderQuick();
+if(S.countOn === true) countRun(); // 站立活动倒计时：开关开着则启动（关闭状态不计时）
 applyWallpaper();
 fetchWeather();
 fetchHot();
