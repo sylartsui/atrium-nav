@@ -936,11 +936,13 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
     <div class="set-row">
       <button class="set-btn" id="exportCfg">⬇ 导出配置</button>
       <button class="set-btn" id="importCfg">⬆ 导入配置</button>
-      <button class="set-btn" id="restorePrev" title="回到最近一次保存前的版本（保存前自动留底，可反复切换）">⟲ 恢复上一版</button>
+    </div>
+    <div class="set-row" style="margin-top:10px">
+      <button class="set-btn" id="restorePrev" style="flex:1;justify-content:center" title="把最后一次成功加载（保存前自动留底）的整份配置换回当前（可反复切换）">⟲ 恢复最后一次成功加载的配置</button>
     </div>
     <span class="hint" style="margin-top:8px;display:block;font-size:11.5px;color:var(--ink-weak);font-weight:500">
       包含搜索引擎、分组网址、访问量、图标数量、缩放与墙纸，导出为 JSON 文件，可在其他电脑导入恢复<br>
-      每次保存前会自动留底上一版，「⟲ 恢复上一版」可随时回退误删误改（再点一次即切回）
+      每次保存前会自动留底上一版，「⟲ 恢复最后一次成功加载的配置」可随时回退误删误改（再点一次即切回当前）
     </span>
   </div>
   <div class="set-sec">
@@ -3116,18 +3118,18 @@ function importConfig(file){
 }
 document.getElementById('exportCfg').onclick = exportConfig;
 document.getElementById('importCfg').onclick = () => document.getElementById('cfgInput').click();
-/* 数据保险 ③：恢复上一版——把 -prev 换回主键、当前版换到 -prev（可来回切），确认有效才执行 */
+/* 数据保险 ③：恢复最后一次成功加载的配置——把 -prev 换回主键、当前版换到 -prev（可来回切），确认有效才执行 */
 document.getElementById('restorePrev').onclick = () => {
   let cur = null, prev = null;
   try{ cur = localStorage.getItem(LS_KEY); prev = localStorage.getItem(LS_KEY + '-prev'); }catch(e){}
-  if(!prev){ toast('没有可恢复的上一版'); return; }
+  if(!prev){ toast('没有可恢复的配置'); return; }
   let ok = false;
   try{ const v = JSON.parse(prev); ok = !!(v && v.groups); }catch(e){}
-  if(!ok){ toast('上一版数据无效，无法恢复'); return; }
+  if(!ok){ toast('留底的配置数据无效，无法恢复'); return; }
   try{
     if(cur && cur !== prev){ try{ localStorage.setItem(LS_KEY + '-prev', cur); }catch(e2){} } // 当前版换位，可再切回
     localStorage.setItem(LS_KEY, prev);
-    toast('已恢复上一版，正在刷新…');
+    toast('已恢复最后一次成功加载的配置，正在刷新…');
     setTimeout(() => location.reload(), 800);
   }catch(e){ toast('写入失败：' + ((e && e.name) || '未知')); }
 };
