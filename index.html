@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v2.2.0</title>
+<title>Atrium · 导航 v2.2.5</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -740,6 +740,106 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
   transform:translate(-50%,-50%) scale(3);
   z-index:600;cursor:pointer;
 }
+/* ===== 多倒计时：可添加多个（名称+倒计时），浮窗随内容增高，可拖动 ===== */
+#multiPop{
+  position:fixed;z-index:185;width:clamp(231px,22vw,330px);
+  padding:10px;border-radius:18px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;
+  display:none;flex-direction:column;gap:8px;color:var(--ink-main);
+  background:rgba(30,32,40,.40);
+  backdrop-filter:blur(22px) saturate(1.6);-webkit-backdrop-filter:blur(22px) saturate(1.6);
+  box-shadow:0 10px 34px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.26), inset 0 0 0 1px rgba(255,255,255,.13);
+}
+#multiPop.on{display:flex}
+#multiPop.dragging{cursor:grabbing;box-shadow:0 18px 44px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.3), inset 0 0 0 1px rgba(255,255,255,.16)}
+.mp-head{display:flex;align-items:center;gap:6px}
+.mp-head .mp-title{font-size:11.5px;font-weight:700;letter-spacing:.08em;color:var(--ink-sub);flex:1}
+.mp-head .mp-add{
+  border:none;border-radius:50%;background:var(--hover-fill);color:var(--ink-main);cursor:pointer;
+  width:26px;height:26px;padding:0;flex:none;display:flex;align-items:center;justify-content:center;
+  font-size:17px;font-weight:600;font-family:inherit;line-height:1;
+}
+.mp-head .mp-add:hover{background:var(--press-fill)}
+#mpList{display:flex;flex-direction:column;gap:7px}
+.mp-item{
+  display:flex;flex-direction:column;gap:3px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.07);
+}
+.mp-item.over{background:rgba(255,69,58,.12)}
+.mp-item .mp-top{display:flex;align-items:center;gap:6px}
+.mp-item .mp-name{font-size:12px;font-weight:600;color:var(--ink-main);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp-item .mp-del{
+  border:none;background:transparent;color:var(--ink-weak);cursor:pointer;flex:none;
+  width:20px;height:20px;border-radius:7px;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;
+}
+.mp-item .mp-del:hover{background:var(--press-fill);color:#FF453A}
+.mp-item .mp-edit,.mp-item .mp-reset,.mp-item .mp-pause{
+  border:none;background:transparent;color:var(--ink-weak);cursor:pointer;flex:none;
+  width:20px;height:20px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+}
+.mp-item .mp-edit svg,.mp-item .mp-reset svg,.mp-item .mp-pause svg{width:13px;height:13px;pointer-events:none}
+.mp-item .mp-edit:hover,.mp-item .mp-reset:hover,.mp-item .mp-pause:hover{background:var(--press-fill);color:var(--accent)}
+.mp-item .mp-time{
+  font-size:clamp(15px,1.8vw,22px);font-weight:800;line-height:1.1;white-space:nowrap;
+  font-variant-numeric:tabular-nums;text-shadow:0 1px 3px rgba(0,0,0,.30);
+}
+.mp-item .mp-time.over{color:#FF453A;text-shadow:0 1px 4px rgba(255,69,58,.35)}
+.mp-item.shake{animation:cpShake .5s linear infinite} /* 到时原窗内的轻抖（不位移窗体本身的大动画） */
+.mp-item.done{opacity:.55} /* 已停止态：冻结负数、不抖、半透明 */
+.mp-item.done .mp-time{color:var(--ink-weak);text-shadow:none}
+.mp-item.paused{opacity:.72} /* 暂停态：冻结当前剩余、不抖、略淡 */
+.mp-item.paused .mp-time{color:var(--ink-sub);text-shadow:none}
+/* 编辑行（点笔图标展开，复用添加行样式） */
+.mp-edit-row{display:flex;flex-direction:column;gap:6px;padding-top:7px;border-top:1px solid rgba(255,255,255,.13)}
+.mp-edit-row input{
+  width:100%;box-sizing:border-box;height:30px;border:none;border-radius:10px;outline:none;text-align:center;
+  background:var(--hover-fill);color:var(--ink-main);font-size:12px;font-family:inherit;min-width:0;
+}
+.mp-edit-row input:focus{background:var(--press-fill)}
+.mp-edit-row input::placeholder{color:var(--ink-weak)}
+.mp-empty{text-align:center;color:var(--ink-weak);font-size:11.5px;padding:10px 4px}
+/* 添加行（点「＋」展开） */
+#mpAddRow{display:none;flex-direction:column;gap:6px;padding-top:8px;border-top:1px solid rgba(255,255,255,.13)}
+#mpAddRow.open{display:flex}
+#mpAddRow input{
+  width:100%;box-sizing:border-box;height:32px;border:none;border-radius:10px;outline:none;text-align:center;
+  background:var(--hover-fill);color:var(--ink-main);font-size:12.5px;font-family:inherit;min-width:0;
+}
+#mpAddRow input:focus{background:var(--press-fill)}
+#mpAddRow input::placeholder{color:var(--ink-weak)}
+.mp-add-btns{display:flex;gap:6px}
+.mp-add-btns button{
+  flex:1;border:none;border-radius:10px;padding:6px 0;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;
+}
+#mpAddOk{background:var(--accent);color:#fff}
+#mpAddOk:disabled{opacity:.45;cursor:not-allowed}
+#mpAddCancel{background:var(--hover-fill);color:var(--ink-main)}
+/* 到时独立提醒窗体：样式参考站立倒计时放大提醒（居中、300%、红字、抖动）；原浮窗不动 */
+#mcAlert{
+  position:fixed;left:50%;top:50%;z-index:610;width:10vw;min-width:150px;max-width:260px;
+  padding:14px 12px 16px;border-radius:20px;
+  display:none;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:var(--ink-main);
+  background:rgba(30,32,40,.42);
+  backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);
+  box-shadow:0 16px 46px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.28), inset 0 0 0 1px rgba(255,255,255,.16);
+  transform:translate(-50%,-50%) scale(3);
+}
+#mcAlert.on{display:flex;animation:mcAlertIn .3s var(--ease-pop)}
+@keyframes mcAlertIn{ from{opacity:0} to{opacity:1} }
+/* 提醒窗抖动：与 cpBigShake 同理，把居中+3倍烘进每帧，否则动画 transform 吃掉缩放 */
+@keyframes mcAlertShake{
+  0%,100%{transform:translate(-50%,-50%) scale(3)}
+  15%{transform:translate(-50%,-50%) scale(3) translate(-4px,0)}
+  30%{transform:translate(-50%,-50%) scale(3) translate(4px,-2px)}
+  45%{transform:translate(-50%,-50%) scale(3) translate(-4px,2px)}
+  60%{transform:translate(-50%,-50%) scale(3) translate(3px,1px)}
+  80%{transform:translate(-50%,-50%) scale(3) translate(-2px,-1px)}
+}
+#mcAlert.on.shake{animation:mcAlertShake .5s linear .3s infinite}
+#mcAlert .mca-name{font-size:11px;font-weight:700;letter-spacing:.06em;color:#fff;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mcAlert .mca-time{
+  font-size:clamp(13px,1.7vw,23px);font-weight:800;line-height:1.12;white-space:nowrap;
+  font-variant-numeric:tabular-nums;color:#FF453A;text-shadow:0 1px 5px rgba(255,69,58,.45);
+}
+#mcAlert .mca-hint{font-size:9px;color:var(--ink-weak);margin-top:2px}
 #countIn1,#countIn2{
   width:74px;height:34px;border:none;border-radius:17px;outline:none;text-align:center;
   background:var(--hover-fill);color:var(--ink-main);font-size:13.5px;font-weight:600;font-family:inherit;
@@ -767,7 +867,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
   width:23vw;height:70vh;border-radius:var(--radius-panel);
   display:none;flex-direction:column;color:var(--ink-main);overflow:hidden;
 }
-#planPanel.open{display:flex;animation:planSlideUp .34s var(--ease-pop)}
+#planPanel.open,#planPanel.peek{display:flex;animation:planSlideUp .34s var(--ease-pop)}
 @keyframes planSlideUp{
   from{transform:translateY(46px);opacity:0}
   to{transform:translateY(0);opacity:1}
@@ -948,6 +1048,30 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
   <div class="cp-row">
     <span class="cp-time" id="cpTime">00:05:00</span>
   </div>
+</div>
+
+<!-- 多倒计时：浮窗可添加多个（名称+倒计时），随内容增高，可拖动；设置里不设时间，逐条添加 -->
+<div id="multiPop" role="region" aria-label="多倒计时">
+  <div class="mp-head">
+    <span class="mp-title">⏱ 倒计时</span>
+    <button class="mp-add" id="mpAddToggle" aria-label="添加倒计时">＋</button>
+  </div>
+  <div id="mpList"></div>
+  <div id="mpAddRow">
+    <input type="text" id="mpName" maxlength="40" placeholder="名称（如：煮面）">
+    <input type="text" id="mpDur" inputmode="numeric" placeholder="时长：分钟 或 分:秒（如 5:30）">
+    <div class="mp-add-btns">
+      <button id="mpAddOk">添加</button>
+      <button id="mpAddCancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 多倒计时到时独立提醒窗体：原浮窗不动，另弹此居中放大提醒（红字+抖动），点击关闭 -->
+<div id="mcAlert" role="alertdialog" aria-label="倒计时到时提醒">
+  <span class="mca-name" id="mcaName"></span>
+  <span class="mca-time" id="mcaTime">-00:00:00</span>
+  <span class="mca-hint">点击关闭</span>
 </div>
 
 <!-- 日历计划任务：右下角图标 + 其上方贴右毛玻璃窗体（宽 23vw·高 70vh）+ 已完成全屏居中管理 -->
@@ -1138,6 +1262,24 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
     </span>
   </div>
   <div class="set-sec">
+    <div class="lab">多倒计时</div>
+    <div class="set-row">
+      <label class="tgl"><input type="checkbox" id="tglMulti"><span class="tgl-track"></span></label>
+      <span class="hint">桌面多倒计时浮窗：打开后在浮窗中逐条添加「名称＋时长」，可添加多个，浮窗随内容增高、可拖动摆放</span>
+    </div>
+    <div class="set-row" style="margin-top:8px">
+      <label class="tgl"><input type="checkbox" id="tglMultiBig"><span class="tgl-track"></span></label>
+      <span class="hint">到时放大提醒：倒计时归零时原浮窗不动，另外弹出居中放大 300% 的提醒窗体（红字＋抖动，样式同站立倒计时），点击关闭；点掉提醒窗后该条倒计时也停止</span>
+    </div>
+    <div class="set-row" style="margin-top:8px">
+      <label class="tgl"><input type="checkbox" id="tglMultiNotify"><span class="tgl-track"></span></label>
+      <span class="hint">倒计时系统提醒：到点时标签页标题闪烁，并弹 Windows 系统通知（与站立倒计时共用授权，首次需授权一次）</span>
+    </div>
+    <span class="hint" style="margin-top:6px;display:block;font-size:11.5px;color:var(--ink-weak);font-weight:500">
+      时间不在设置中填写：开启后在浮窗点「＋ 添加」，输入名称与时长（分钟，或「分:秒」如 5:30）；每条独立到时，红字负数计时，可单独删除；关闭总开关时浮窗隐藏、计时暂停（重新打开继续）
+    </span>
+  </div>
+  <div class="set-sec">
     <div class="lab">热搜榜</div>
     <div class="set-row" style="flex-direction:column;align-items:flex-start;gap:8px">
       <span class="hint" style="flex:none">选择任务栏滚动的热搜榜单，最多选 3 个</span>
@@ -1217,7 +1359,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '2.2.0';
+const APP_VER = '2.2.5';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -1360,12 +1502,24 @@ function normalize(v){
     hoverScale:1.55, history:[], histOn:true, presetApplied:'', trayMute:false, showVol:true, showNet:true,
     showVisits:false, dragSort:false, rbScroll:true, hotBoards:['baidu'],
     countOn:false, count1:300, count2:300, countPos:null, countBig:false, countNotify:false,
+    multiOn:false, multiBig:false, multiNotify:false, multiItems:[], multiPos:null,
     plans:[], planSortDesc:true,
     quick:[{name:'DeepSeek', url:'https://chat.deepseek.com'}],
   }, v);
   if(!Array.isArray(s.hotBoards) || !s.hotBoards.length) s.hotBoards = ['baidu'];
   if(typeof s.count1 !== 'number' || !(s.count1 > 0)) s.count1 = 300;
   if(typeof s.count2 !== 'number' || !(s.count2 > 0)) s.count2 = 300;
+  // 多倒计时条目规范化：补 paused/stopped/freeze；旧配置缺省视为「暂停」（打开不立刻计时）
+  if(Array.isArray(s.multiItems)) s.multiItems = s.multiItems
+    .filter(x => x && typeof x.name === 'string' && typeof x.dur === 'number')
+    .map(x => ({
+      id:x.id || ('m'+Date.now()+Math.random().toString(36).slice(2,6)),
+      name:x.name, dur:x.dur,
+      endTs:(typeof x.endTs === 'number' ? x.endTs : Date.now() + x.dur*1000),
+      fired:!!x.fired, stopped:!!x.stopped,
+      paused:(typeof x.paused === 'boolean' ? x.paused : true),
+      freeze:(typeof x.freeze === 'number' ? x.freeze : x.dur),
+    }));
   return s;
 }
 let memoryWall = null;   // 自定义壁纸超出 localStorage 配额时仅本次会话有效
@@ -3302,6 +3456,8 @@ function exportConfig(){
     history:S.history||[], histOn:S.histOn !== false,
     quick:S.quick||[],
     countOn:S.countOn === true, count1:S.count1||300, count2:S.count2||300, countPos:S.countPos||null, countBig:S.countBig === true, countNotify:S.countNotify === true,
+    multiOn:S.multiOn === true, multiBig:S.multiBig === true, multiNotify:S.multiNotify === true,
+    multiItems:Array.isArray(S.multiItems) ? S.multiItems : [], multiPos:S.multiPos||null,
     plans:Array.isArray(S.plans) ? S.plans : [], planSortDesc:S.planSortDesc !== false,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
@@ -3335,6 +3491,8 @@ function importConfig(file){
         quick:Array.isArray(j.quick) ? j.quick : [{name:'DeepSeek', url:'https://chat.deepseek.com'}],
         countOn:j.countOn === true, count1:(typeof j.count1 === 'number' && j.count1 > 0) ? j.count1 : 300,
         count2:(typeof j.count2 === 'number' && j.count2 > 0) ? j.count2 : 300, countPos:j.countPos||null, countBig:j.countBig === true, countNotify:j.countNotify === true,
+        multiOn:j.multiOn === true, multiBig:j.multiBig === true, multiNotify:j.multiNotify === true,
+        multiItems:Array.isArray(j.multiItems) ? j.multiItems.filter(x => x && typeof x.name === 'string' && typeof x.endTs === 'number') : [], multiPos:j.multiPos||null,
         plans:Array.isArray(j.plans) ? j.plans : [], planSortDesc:j.planSortDesc !== false,
         presetApplied:(typeof j.presetApplied === 'string' && j.presetApplied) ? j.presetApplied : PRESET_ID, // 旧版备份无此字段：视为已应用过预设，防止下次打开被迁移覆盖
       });
@@ -3355,6 +3513,7 @@ function importConfig(file){
   document.getElementById('tglRb').checked = S.rbScroll !== false;
       cpSyncSettingsUI();
       if(S.countOn === true){ countRun(); } else { countStop(); } // 导入配置后同步倒计时窗开关状态
+      multiApplyState(); // 导入配置后同步多倒计时浮窗（设置回显 + 运行/停止）
       renderPlans(); ppUpdateCount(); // 导入配置后同步计划任务列表
   rbReleaseAll();
   renderHotChips();
@@ -3813,6 +3972,347 @@ for(const [id, which] of [['countIn1',1],['countIn2',2]]){
   el.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.isComposing && e.keyCode !== 229){ e.target.blur(); } }); // 输入法选词回车不应用
 }
 
+/* ================= 多倒计时：浮窗逐条添加（名称+时长），到时可另弹独立提醒窗体 ================= */
+/* 数据：S.multiItems = [{id,name,dur,endTs,fired,paused,stopped,freeze}]
+   endTs=到期时间戳（运行态按时间戳差值计时防漂移）；paused=暂停；stopped=到时后停止；freeze=暂停/停止时冻结的剩余秒数（可为负） */
+const multiPop = document.getElementById('multiPop');
+const mpList = document.getElementById('mpList');
+const mpAddRow = document.getElementById('mpAddRow');
+const mcAlert = document.getElementById('mcAlert');
+const mcaName = document.getElementById('mcaName');
+const mcaTime = document.getElementById('mcaTime');
+let mcTimer = null;          // tick 间隔
+let mcAlertId = null;        // 当前提醒窗体对应的 item id
+let mcEditId = null;         // 正在编辑的 item id
+let mcFlashTimer = null;     // 系统提醒：标题闪烁定时器（独立于站立倒计时）
+let mpDrag = null;           // 拖动状态
+function mcItems(){ return Array.isArray(S.multiItems) ? S.multiItems : (S.multiItems = []); }
+function mcRemain(it){ // 剩余秒数：运行态按 endTs 走时，暂停/停止态取冻结值
+  if(it.paused || it.stopped) return (typeof it.freeze === 'number' ? it.freeze : 0);
+  return Math.floor((it.endTs - Date.now())/1000);
+}
+function mcStopItem(it){ // 进入已停止态（点提醒窗 或 到时后点条目本体）：冻结当前剩余、停抖
+  if(!it || it.stopped) return;
+  const remain = mcRemain(it); // 须在改 stopped 之前取当前剩余
+  it.stopped = true;
+  it.freeze = remain < 0 ? remain : 0; // 到时显示冻结的负数；未到时点停则记为 0
+  it.paused = false;
+}
+function mcPlace(){ // 应用/钳制浮窗位置（浮窗随内容增高，视口变化自动收回）
+  const r = multiPop.getBoundingClientRect();
+  const p = (S.multiPos && typeof S.multiPos.x === 'number') ? S.multiPos : null;
+  let x = p ? p.x : innerWidth - r.width - 24;
+  let y = p ? p.y : 160;
+  x = Math.min(Math.max(8, x), Math.max(8, innerWidth - r.width - 8));
+  y = Math.min(Math.max(8, y), Math.max(8, innerHeight - r.height - 8));
+  multiPop.style.left = x + 'px';
+  multiPop.style.top = y + 'px';
+}
+function mcNotifyStart(it){
+  if(mcFlashTimer) return; // 同一时刻只闪一个（多个到时逐个点击关闭后再闪下一个）
+  const base = 'Atrium · 导航 v' + APP_VER;
+  let on = false;
+  const beat = () => { on = !on; document.title = on ? ('⏰ ' + it.name + ' 时间到！') : base; };
+  beat();
+  mcFlashTimer = setInterval(beat, 600);
+  toast('⏰ ' + it.name + ' 时间到');
+  try{
+    if('Notification' in window && Notification.permission === 'granted'){
+      new Notification('倒计时 · 时间到', { body: it.name + '：时间到', icon: CP_ICO_A, tag: 'atrium-multi-'+it.id, requireInteraction: true });
+    }
+  }catch(err){ toast('系统通知发送失败，标题闪动仍生效'); }
+}
+function mcNotifyStop(){
+  if(mcFlashTimer){ clearInterval(mcFlashTimer); mcFlashTimer = null; }
+  document.title = 'Atrium · 导航 v' + APP_VER;
+}
+function mcAlertClose(){
+  mcAlert.classList.remove('on','shake');
+  if(mcAlertId){ // 点掉提醒窗 → 对应倒计时进入已停止态（冻结时间、停抖、半透明）
+    mcStopItem(mcItems().find(x => x.id === mcAlertId));
+    save(); mcRender(); mcPlace();
+  }
+  mcAlertId = null;
+  mcNotifyStop();
+}
+function mcAlertDismiss(){ // 仅关闭提醒窗体，不停止倒计时（关开关/删项/暂停等场景用）
+  mcAlert.classList.remove('on','shake');
+  mcAlertId = null;
+  mcNotifyStop();
+}
+function mcAlertShow(it){
+  mcAlertId = it.id;
+  mcaName.textContent = it.name;
+  mcaTime.textContent = cpFmt(Math.floor((it.endTs - Date.now())/1000));
+  mcAlert.classList.add('on');
+  if(!CP_REDUCE.matches) mcAlert.classList.add('shake'); // 减少动态效果时不抖
+}
+function mcTick(){
+  const now = Date.now();
+  for(const it of mcItems()){
+    if(it.stopped || it.paused) continue; // 已停止/暂停：冻结显示，不再走时/抖动/提醒
+    const el = mpList.querySelector('[data-mid="'+it.id+'"]');
+    const remain = Math.floor((it.endTs - now)/1000);
+    const over = remain < 0;
+    if(el){
+      const tEl = el.querySelector('.mp-time');
+      if(tEl){ tEl.textContent = cpFmt(remain); tEl.classList.toggle('over', over); }
+      el.classList.toggle('over', over);
+      el.classList.toggle('shake', over && !CP_REDUCE.matches);
+    }
+    if(over && !it.fired){
+      it.fired = true;
+      save();
+      if(S.multiBig) mcAlertShow(it);      // 到时翻转沿：另弹独立提醒窗体（原浮窗不动）
+      if(S.multiNotify) mcNotifyStart(it); // 到时翻转沿：标题闪烁 + 系统通知
+    }
+  }
+  if(mcAlertId){
+    const it = mcItems().find(x => x.id === mcAlertId);
+    if(it && !it.stopped && !it.paused) mcaTime.textContent = cpFmt(Math.floor((it.endTs - Date.now())/1000));
+  }
+}
+const PEN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
+const RESET_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
+const PAUSE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+const PLAY_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>';
+function mcRender(){
+  const items = mcItems();
+  if(!items.length){ mpList.innerHTML = '<div class="mp-empty">还没有倒计时，点「＋」建一个</div>'; return; }
+  mpList.innerHTML = items.map(it => {
+    const running = !it.paused && !it.stopped;
+    const remain = mcRemain(it), over = remain < 0;
+    const editing = mcEditId === it.id;
+    const label = it.stopped ? ' ·已停止' : (it.paused ? ' ·已暂停' : '');
+    const cls = 'mp-item'+(over?' over':'')+(running && over && !CP_REDUCE.matches?' shake':'')+(it.stopped?' done':'')+(it.paused?' paused':'');
+    return '<div class="'+cls+'" data-mid="'+it.id+'"'+(running && over ? ' title="点击停止该倒计时"' : '')+'>'
+      + '<div class="mp-top"><span class="mp-name" title="'+esc(it.name)+'">'+esc(it.name)+label+'</span>'
+      + '<button class="mp-pause" data-mpause="'+it.id+'" aria-label="'+(running?'暂停':'继续')+'" title="'+(running?'暂停':'继续')+'">'+(running?PAUSE_SVG:PLAY_SVG)+'</button>'
+      + '<button class="mp-reset" data-mreset="'+it.id+'" aria-label="重新开始计时" title="重新开始计时">'+RESET_SVG+'</button>'
+      + '<button class="mp-edit" data-medit="'+it.id+'" aria-label="编辑该倒计时" title="编辑">'+PEN_SVG+'</button>'
+      + '<button class="mp-del" data-mdel="'+it.id+'" aria-label="删除该倒计时">−</button></div>'
+      + '<span class="mp-time'+(over?' over':'')+'">'+cpFmt(remain)+'</span>'
+      + (editing ? '<div class="mp-edit-row">'
+          + '<input type="text" class="me-name" maxlength="40" value="'+esc(it.name)+'" placeholder="名称">'
+          + '<input type="text" class="me-dur" inputmode="numeric" value="'+cpFmtDur(it.dur)+'" placeholder="时长：分钟 或 分:秒">'
+          + '<div class="mp-add-btns"><button class="me-ok">保存</button><button class="me-cancel">取消</button></div></div>' : '')
+      + '</div>';
+  }).join('');
+}
+function mcRun(){
+  multiPop.classList.add('on');
+  // 每次打开窗体：运行中的条目先冻结为暂停态，不立刻计时（点▶才继续）
+  let changed = false;
+  for(const it of mcItems()){
+    if(!it.stopped && !it.paused){ it.freeze = Math.floor((it.endTs - Date.now())/1000); it.paused = true; changed = true; }
+  }
+  if(changed) save();
+  mcRender(); mcPlace();
+  if(mcTimer) clearInterval(mcTimer);
+  mcTimer = setInterval(mcTick, 250);
+}
+function mcStop(){ // 关闭状态：隐藏浮窗与提醒、停表，并把所有倒计时时间重置为完整时长（暂停态）
+  mcAlertDismiss();
+  mcNotifyStop();
+  multiPop.classList.remove('on','dragging');
+  if(mcTimer){ clearInterval(mcTimer); mcTimer = null; }
+  for(const it of mcItems()){
+    it.endTs = Date.now() + it.dur*1000;
+    it.freeze = it.dur; it.fired = false; it.stopped = false; it.paused = true;
+  }
+  mcEditId = null; save();
+}
+function multiApplyState(){ // 导入配置后 / 开关切换后：回显设置 + 运行/停止
+  document.getElementById('tglMulti').checked = S.multiOn === true;
+  document.getElementById('tglMultiBig').checked = S.multiBig === true;
+  document.getElementById('tglMultiNotify').checked = S.multiNotify === true;
+  if(S.multiOn === true) mcRun(); else mcStop();
+  mcSyncAddRow(false);
+  mcEditId = null;
+}
+function mcSyncAddRow(open){
+  mpAddRow.classList.toggle('open', !!open);
+  if(open){ setTimeout(() => document.getElementById('mpName').focus(), 30); }
+  else{ document.getElementById('mpName').value = ''; document.getElementById('mpDur').value = ''; }
+}
+function mcAdd(){
+  const name = document.getElementById('mpName').value.trim();
+  const dur = cpParseDur(document.getElementById('mpDur').value);
+  if(!name){ toast('请填写名称'); document.getElementById('mpName').focus(); return; }
+  if(dur == null){ toast('时长格式：分钟数，或「分:秒」（如 5:30）'); document.getElementById('mpDur').focus(); return; }
+  mcItems().push({ id:'m'+Date.now()+Math.random().toString(36).slice(2,6), name, dur, endTs:Date.now()+dur*1000, fired:false, paused:false, stopped:false, freeze:dur });
+  save(); mcRender(); mcPlace(); mcSyncAddRow(false);
+  toast('已添加倒计时：'+name+'（'+cpFmtDur(dur)+'，开始计时）');
+}
+/* 添加行交互 */
+document.getElementById('mpAddToggle').addEventListener('click', e => { e.stopPropagation(); mpAddRow.classList.contains('open') ? mcSyncAddRow(false) : mcSyncAddRow(true); });
+document.getElementById('mpAddCancel').addEventListener('click', e => { e.stopPropagation(); mcSyncAddRow(false); });
+document.getElementById('mpAddOk').addEventListener('click', e => { e.stopPropagation(); mcAdd(); });
+for(const id of ['mpName','mpDur']){
+  document.getElementById(id).addEventListener('keydown', e => {
+    if(e.key === 'Enter' && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); mcAdd(); } // 输入法选词回车不添加
+    if(e.key === 'Escape'){ e.stopPropagation(); mcSyncAddRow(false); }
+  });
+}
+/* 列表点击委托：暂停/继续 / 重置 / 编辑笔 / 保存 / 取消 / 删除 / 到时点条目停止 */
+mpList.addEventListener('click', e => {
+  const pauseBtn = e.target.closest('[data-mpause]');
+  if(pauseBtn){
+    e.stopPropagation();
+    const id = pauseBtn.getAttribute('data-mpause');
+    const it = mcItems().find(x => x.id === id);
+    if(it){
+      if(!it.paused && !it.stopped){ // 运行中 → 暂停：冻结当前剩余
+        it.freeze = Math.floor((it.endTs - Date.now())/1000);
+        it.paused = true;
+        if(mcAlertId === it.id) mcAlertDismiss();
+        mcNotifyStop();
+        toast('「'+it.name+'」已暂停');
+      }else{ // 暂停/已停止 → 继续/重新开始
+        if(it.stopped || it.freeze <= 0){ // 已停止 或 曾在到时处暂停 → 从完整时长重新计时
+          it.endTs = Date.now() + it.dur*1000; it.freeze = it.dur; it.fired = false; it.stopped = false;
+        } else { it.endTs = Date.now() + it.freeze*1000; } // 中途暂停 → 从冻结剩余继续
+        it.paused = false;
+        toast('「'+it.name+'」已开始计时');
+      }
+      mcEditId = null; save(); mcRender(); mcPlace();
+    }
+    return;
+  }
+  const resetBtn = e.target.closest('[data-mreset]');
+  if(resetBtn){
+    e.stopPropagation();
+    const id = resetBtn.getAttribute('data-mreset');
+    const it = mcItems().find(x => x.id === id);
+    if(it){
+      it.endTs = Date.now() + it.dur*1000; it.fired = false; it.stopped = false; it.paused = false; it.freeze = it.dur;
+      if(mcAlertId === it.id) mcAlertDismiss();
+      mcNotifyStop();
+      mcEditId = null; save(); mcRender(); mcPlace();
+      toast('「'+it.name+'」已重新开始计时');
+    }
+    return;
+  }
+  const editBtn = e.target.closest('[data-medit]');
+  if(editBtn){
+    e.stopPropagation();
+    const id = editBtn.getAttribute('data-medit');
+    mcEditId = (mcEditId === id) ? null : id; // 再点一次收起
+    mcRender(); mcPlace();
+    if(mcEditId){ setTimeout(() => { const row = mpList.querySelector('[data-mid="'+id+'"] .me-name'); if(row) row.focus(); }, 30); }
+    return;
+  }
+  const okBtn = e.target.closest('.me-ok');
+  if(okBtn){
+    e.stopPropagation();
+    const wrap = okBtn.closest('[data-mid]'), it = mcItems().find(x => x.id === wrap.getAttribute('data-mid'));
+    if(it){
+      const name = wrap.querySelector('.me-name').value.trim();
+      const dur = cpParseDur(wrap.querySelector('.me-dur').value);
+      if(!name){ toast('请填写名称'); return; }
+      if(dur == null){ toast('时长格式：分钟数，或「分:秒」（如 5:30）'); return; }
+      it.name = name; it.dur = dur;
+      it.endTs = Date.now() + dur*1000; it.freeze = dur; it.fired = false; it.stopped = false; it.paused = true; // 编辑后重置为暂停态，点▶才走
+      if(mcAlertId === it.id) mcAlertDismiss();
+      mcNotifyStop();
+      save();
+    }
+    mcEditId = null; mcRender(); mcPlace(); toast('已修改（点 ▶ 开始计时）');
+    return;
+  }
+  const cancelBtn = e.target.closest('.me-cancel');
+  if(cancelBtn){ e.stopPropagation(); mcEditId = null; mcRender(); mcPlace(); return; }
+  const delBtn = e.target.closest('[data-mdel]');
+  if(delBtn){
+    e.stopPropagation();
+    const id = delBtn.getAttribute('data-mdel');
+    S.multiItems = mcItems().filter(x => x.id !== id);
+    if(mcAlertId === id) mcAlertDismiss();
+    if(mcEditId === id) mcEditId = null;
+    mcNotifyStop();
+    save(); mcRender(); mcPlace();
+    return;
+  }
+  // 点击条目本体（非按钮/输入/编辑行）：到时者进入已停止态（冻结、停抖、半透明）
+  if(e.target.closest('button,input,.mp-edit-row')) return;
+  const row = e.target.closest('[data-mid]');
+  if(row){
+    const it = mcItems().find(x => x.id === row.getAttribute('data-mid'));
+    if(it && !it.paused && !it.stopped && mcRemain(it) < 0){
+      mcStopItem(it);
+      if(mcAlertId === it.id) mcAlertDismiss();
+      mcNotifyStop(); save(); mcRender(); mcPlace();
+      toast('「'+it.name+'」已停止');
+    }
+  }
+});
+/* 编辑行：输入回车保存、Esc 取消（输入法选词不触发） */
+mpList.addEventListener('keydown', e => {
+  if(!e.target.closest('.mp-edit-row')) return;
+  if(e.key === 'Escape'){ e.stopPropagation(); mcEditId = null; mcRender(); mcPlace(); return; }
+  if(e.key === 'Enter' && !e.isComposing && e.keyCode !== 229){
+    e.preventDefault();
+    const ok = e.target.closest('[data-mid]').querySelector('.me-ok');
+    if(ok) ok.click();
+  }
+});
+/* 提醒窗体点击关闭 */
+mcAlert.addEventListener('click', () => mcAlertClose());
+/* 拖动摆放：位移 ≤6px 视为点击（不误触），否则拖动并保存位置 */
+multiPop.addEventListener('pointerdown', e => {
+  if(e.pointerType === 'mouse' && e.button !== 0) return;
+  if(e.target.closest('button,input')) return; // 按钮/输入框不触发拖动
+  const r = multiPop.getBoundingClientRect();
+  mpDrag = { dx:e.clientX-r.left, dy:e.clientY-r.top, sx:e.clientX, sy:e.clientY, moved:false };
+  try{ multiPop.setPointerCapture(e.pointerId); }catch(err){}
+});
+multiPop.addEventListener('pointermove', e => {
+  if(!mpDrag) return;
+  if(Math.abs(e.clientX-mpDrag.sx) + Math.abs(e.clientY-mpDrag.sy) > 6) mpDrag.moved = true;
+  if(!mpDrag.moved) return;
+  multiPop.classList.add('dragging');
+  const r = multiPop.getBoundingClientRect();
+  let x = e.clientX - mpDrag.dx, y = e.clientY - mpDrag.dy;
+  x = Math.min(Math.max(8, x), Math.max(8, innerWidth - r.width - 8));
+  y = Math.min(Math.max(8, y), Math.max(8, innerHeight - r.height - 8));
+  multiPop.style.left = x + 'px'; multiPop.style.top = y + 'px';
+});
+multiPop.addEventListener('pointerup', () => {
+  if(!mpDrag) return;
+  const moved = mpDrag.moved; mpDrag = null;
+  multiPop.classList.remove('dragging');
+  if(moved){ const r = multiPop.getBoundingClientRect(); S.multiPos = {x:Math.round(r.left),y:Math.round(r.top)}; save(); }
+});
+multiPop.addEventListener('pointercancel', () => { mpDrag = null; multiPop.classList.remove('dragging'); });
+window.addEventListener('resize', () => { if(multiPop.classList.contains('on')) mcPlace(); });
+/* 设置联动 */
+document.getElementById('tglMulti').addEventListener('change', e => {
+  S.multiOn = e.target.checked; save();
+  if(e.target.checked){ mcRun(); toast('多倒计时已开启（点浮窗「＋ 添加」逐条建倒计时）'); }
+  else{ mcStop(); toast('多倒计时已关闭（计时暂停）'); }
+});
+document.getElementById('tglMultiBig').addEventListener('change', e => {
+  S.multiBig = e.target.checked; save();
+  if(e.target.checked){
+    // 开启时若已有到时项（仅运行中），立即为最近一条弹提醒
+    const over = mcItems().find(x => !x.paused && !x.stopped && x.endTs - Date.now() < 0);
+    if(over && multiPop.classList.contains('on')) mcAlertShow(over);
+    toast('到时放大提醒已开启：归零时另弹居中放大提醒窗体');
+  }else{ mcAlertDismiss(); toast('到时放大提醒已关闭'); }
+});
+document.getElementById('tglMultiNotify').addEventListener('change', e => {
+  S.multiNotify = e.target.checked; save();
+  if(e.target.checked){
+    toast('倒计时系统提醒已开启：到点时标题闪烁并弹系统通知');
+    // 首次授权在开关点击手势内请求（与站立倒计时共用授权状态）
+    if('Notification' in window && Notification.permission === 'default') cpNotifyAsk();
+    // 若当前已有到时项，立即提醒
+    const over = mcItems().find(x => !x.paused && !x.stopped && x.endTs - Date.now() < 0);
+    if(over && multiPop.classList.contains('on')) mcNotifyStart(over);
+  }else{ mcNotifyStop(); toast('倒计时系统提醒已关闭'); }
+});
+multiApplyState(); // 初始化：按 S.multiOn 恢复浮窗
+
 /* ================= 日历计划任务 ================= */
 /* 数据：S.plans = [{id, text, ts, done, doneTs}]；S.planSortDesc 控制待完成列表按时间倒序/正序 */
 const planPanel = document.getElementById('planPanel');
@@ -3882,6 +4382,7 @@ ppInput.addEventListener('input', ppUpdateCount);
 ppInput.addEventListener('keydown', e => { if(e.key === 'Enter' && (e.ctrlKey||e.metaKey) && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); ppAdd(); } });
 document.getElementById('ppSortBtn').addEventListener('click', () => { S.planSortDesc = (S.planSortDesc === false); save(); renderPlans(); });
 function planOpen(on){
+  planPanel.classList.remove('peek'); // 固定打开/明确关闭时脱离悬停预览态，交回 .open 接管
   planPanel.classList.toggle('open', on);
   if(!on){ planDoneMask.classList.remove('open'); doneModal.classList.remove('open'); }
 }
@@ -3889,6 +4390,32 @@ function doneOpen(on){
   planDoneMask.classList.toggle('open', on); doneModal.classList.toggle('open', on);
 }
 document.getElementById('planFab').addEventListener('click', e => { e.stopPropagation(); planOpen(!planPanel.classList.contains('open')); });
+/* 悬停预览：鼠标停在日历图标（或已预览出的窗体）上时临时显示计划窗体，移开自动收起。
+   与原有「点击固定打开」完全独立：已固定打开时悬停不介入，移开也不会收起固定窗体。
+   仅在支持 hover 的设备启用（触屏仍走点击）；延时收起用于覆盖图标与窗体之间的 12px 间隙。 */
+(function(){
+  if(!(window.matchMedia && window.matchMedia('(hover: hover)').matches)) return;
+  const fab = document.getElementById('planFab');
+  let t = null;
+  const DELAY = 260;
+  const cancel = () => { if(t){ clearTimeout(t); t = null; } };
+  const show = () => {
+    cancel();
+    if(planPanel.classList.contains('open')) return; // 固定打开态，悬停不接管
+    planPanel.classList.add('peek');
+  };
+  const hide = () => {
+    cancel();
+    t = setTimeout(() => {
+      if(!planPanel.classList.contains('open')) planPanel.classList.remove('peek');
+      t = null;
+    }, DELAY);
+  };
+  fab.addEventListener('mouseenter', show);
+  fab.addEventListener('mouseleave', hide);
+  planPanel.addEventListener('mouseenter', cancel);
+  planPanel.addEventListener('mouseleave', hide);
+})();
 document.getElementById('ppCloseBtn').addEventListener('click', () => planOpen(false));
 document.getElementById('ppManageBtn').addEventListener('click', () => { renderPlans(); doneOpen(true); });
 document.getElementById('doneCloseBtn').addEventListener('click', () => doneOpen(false));
@@ -3927,8 +4454,11 @@ renderEngineBtn(); renderEngineMenu();
    每层只关自己并 return，再按一次 Esc 才退到下一层，避免一次按键关掉一整条链路 */
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape' || e.defaultPrevented || e.isComposing) return;
+  if(mcAlert.classList.contains('on')){ mcAlertDismiss(); return; } // 多倒计时提醒窗体（最内层；Esc 只关窗不停倒计时）
+  if(mcEditId){ mcEditId = null; mcRender(); mcPlace(); return; } // 多倒计时编辑行
+  if(document.getElementById('mpAddRow').classList.contains('open')){ mcSyncAddRow(false); return; } // 多倒计时添加行
   if(doneModal.classList.contains('open')){ doneOpen(false); return; }
-  if(planPanel.classList.contains('open')){ planOpen(false); return; }
+  if(planPanel.classList.contains('open') || planPanel.classList.contains('peek')){ planOpen(false); return; }
   if(document.getElementById('iconPop').classList.contains('open')){ closeIconPop(); return; }
   if(document.getElementById('movePop').classList.contains('open')){ closeMovePop(); return; }
   if(document.getElementById('sortPop').classList.contains('open')){ closeSortPop(); return; }
