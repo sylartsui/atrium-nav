@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v2.2.5</title>
+<title>Atrium · 导航 v2.2.6</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -714,6 +714,13 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
   font-variant-numeric:tabular-nums;text-shadow:0 1px 3px rgba(0,0,0,.30);
 }
 #countPop .cp-time.over{color:#FF453A;text-shadow:0 1px 4px rgba(255,69,58,.35)}
+#countPop .cp-ctrl{display:flex;gap:8px;margin-top:4px}
+#countPop .cp-btn{
+  border:none;background:transparent;color:var(--ink-sub);cursor:pointer;flex:none;
+  width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+}
+#countPop .cp-btn svg{width:13px;height:13px;pointer-events:none}
+#countPop .cp-btn:hover{background:rgba(255,255,255,.13);color:var(--ink-main)}
 @keyframes cpShake{
   0%,100%{transform:translate(0,0)}
   15%{transform:translate(-4px,0)}
@@ -1048,6 +1055,15 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
   <div class="cp-row">
     <span class="cp-time" id="cpTime">00:05:00</span>
   </div>
+  <div class="cp-ctrl">
+    <button class="cp-btn" id="cpPause" aria-label="暂停倒计时" title="暂停">
+      <svg class="ic-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+      <svg class="ic-play" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M8 5.5v13l11-6.5z"/></svg>
+    </button>
+    <button class="cp-btn" id="cpReset" aria-label="重置倒计时" title="重置当前段">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+    </button>
+  </div>
 </div>
 
 <!-- 多倒计时：浮窗可添加多个（名称+倒计时），随内容增高，可拖动；设置里不设时间，逐条添加 -->
@@ -1258,7 +1274,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
       <input type="text" id="countIn2" inputmode="numeric" placeholder="5 或 5:30">
     </div>
     <span class="hint" style="margin-top:6px;display:block;font-size:11.5px;color:var(--ink-weak);font-weight:500">
-      时长填分钟数（如 5），或「分:秒」（如 5:30）；「距离起立还有」与「距离坐下还有」两段轮流执行，超时后负数计时并抖动；时间未到点击窗体询问「你要提前完成这个阶段吗？」，确认切换、取消继续；开启「到时放大提醒」后归零时窗体放大 300% 居中全屏，点击恢复；开启「倒计时系统提醒」后归零时标题闪烁并弹系统通知（授权一次）；关闭总开关时不计时
+      时长填分钟数（如 5），或「分:秒」（如 5:30）；留空或填 0 表示该段不设置、计时时自动跳过；「距离起立还有」与「距离坐下还有」两段轮流执行，超时后负数计时并抖动；悬浮窗上的 ⏸/▶ 暂停或继续当前段，↻ 重置当前段；时间未到点击窗体询问「你要提前完成这个阶段吗？」，确认切换、取消继续；开启「到时放大提醒」后归零时窗体放大 300% 居中全屏，点击恢复；开启「倒计时系统提醒」后归零时标题闪烁并弹系统通知（授权一次）；关闭总开关时不计时
     </span>
   </div>
   <div class="set-sec">
@@ -1359,7 +1375,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '2.2.5';
+const APP_VER = '2.2.6';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -1507,8 +1523,9 @@ function normalize(v){
     quick:[{name:'DeepSeek', url:'https://chat.deepseek.com'}],
   }, v);
   if(!Array.isArray(s.hotBoards) || !s.hotBoards.length) s.hotBoards = ['baidu'];
-  if(typeof s.count1 !== 'number' || !(s.count1 > 0)) s.count1 = 300;
-  if(typeof s.count2 !== 'number' || !(s.count2 > 0)) s.count2 = 300;
+  // 两段时长允许为 0 = 未设置（该段跳过）；负数/非数回退 300
+  if(typeof s.count1 !== 'number' || !isFinite(s.count1) || s.count1 < 0) s.count1 = 300;
+  if(typeof s.count2 !== 'number' || !isFinite(s.count2) || s.count2 < 0) s.count2 = 300;
   // 多倒计时条目规范化：补 paused/stopped/freeze；旧配置缺省视为「暂停」（打开不立刻计时）
   if(Array.isArray(s.multiItems)) s.multiItems = s.multiItems
     .filter(x => x && typeof x.name === 'string' && typeof x.dur === 'number')
@@ -3455,7 +3472,7 @@ function exportConfig(){
     trayMute:!!S.trayMute, showVol:S.showVol !== false, showNet:S.showNet !== false, showVisits:S.showVisits === true, dragSort:S.dragSort === true, rbScroll:S.rbScroll !== false, hotBoards:Array.isArray(S.hotBoards)?S.hotBoards:['baidu'],
     history:S.history||[], histOn:S.histOn !== false,
     quick:S.quick||[],
-    countOn:S.countOn === true, count1:S.count1||300, count2:S.count2||300, countPos:S.countPos||null, countBig:S.countBig === true, countNotify:S.countNotify === true,
+    countOn:S.countOn === true, count1:(typeof S.count1 === 'number' ? S.count1 : 300), count2:(typeof S.count2 === 'number' ? S.count2 : 300), countPos:S.countPos||null, countBig:S.countBig === true, countNotify:S.countNotify === true,
     multiOn:S.multiOn === true, multiBig:S.multiBig === true, multiNotify:S.multiNotify === true,
     multiItems:Array.isArray(S.multiItems) ? S.multiItems : [], multiPos:S.multiPos||null,
     plans:Array.isArray(S.plans) ? S.plans : [], planSortDesc:S.planSortDesc !== false,
@@ -3489,8 +3506,8 @@ function importConfig(file){
         trayMute:!!j.trayMute, showVol:j.showVol !== false, showNet:j.showNet !== false, showVisits:j.showVisits === true, dragSort:j.dragSort === true, rbScroll:j.rbScroll !== false,
         hotBoards:(Array.isArray(j.hotBoards) && j.hotBoards.length) ? j.hotBoards.filter(k=>HOT_BOARDS[k]).slice(0,3) : ['baidu'],
         quick:Array.isArray(j.quick) ? j.quick : [{name:'DeepSeek', url:'https://chat.deepseek.com'}],
-        countOn:j.countOn === true, count1:(typeof j.count1 === 'number' && j.count1 > 0) ? j.count1 : 300,
-        count2:(typeof j.count2 === 'number' && j.count2 > 0) ? j.count2 : 300, countPos:j.countPos||null, countBig:j.countBig === true, countNotify:j.countNotify === true,
+        countOn:j.countOn === true, count1:(typeof j.count1 === 'number' && isFinite(j.count1) && j.count1 >= 0) ? j.count1 : 300,
+        count2:(typeof j.count2 === 'number' && isFinite(j.count2) && j.count2 >= 0) ? j.count2 : 300, countPos:j.countPos||null, countBig:j.countBig === true, countNotify:j.countNotify === true,
         multiOn:j.multiOn === true, multiBig:j.multiBig === true, multiNotify:j.multiNotify === true,
         multiItems:Array.isArray(j.multiItems) ? j.multiItems.filter(x => x && typeof x.name === 'string' && typeof x.endTs === 'number') : [], multiPos:j.multiPos||null,
         plans:Array.isArray(j.plans) ? j.plans : [], planSortDesc:j.planSortDesc !== false,
@@ -3816,15 +3833,33 @@ let cpIdx = 0;      // 当前段：0=段①，1=段②
 let cpStart = 0;    // 当前段起始时间戳（时间戳差值计时，不受间隔漂移影响）
 let cpTimer = null;
 let cpWasOver = false;  // 上一 tick 是否已超时（捕捉「刚好到时」的翻转沿）
-const cpDur = () => (cpIdx === 0 ? S.count1 : S.count2) || 300;
-function cpParseDur(str){ // '5'→300 秒（分钟）；'5:30'→330；'0:05'→5。非法返回 null
+let cpPaused = false;   // 当前段是否暂停
+let cpFreeze = 0;       // 暂停时冻结的剩余秒数（可为负）
+const cpDur = function(i){ // 段时长（秒）；0=该段未设置→跳过。i 省略取当前段
+  const k = (typeof i === 'number') ? i : cpIdx;
+  return k === 0 ? S.count1 : S.count2;
+};
+function cpValid(i){ // 该段是否设置了时长（>0 才参与计时）
+  const d = cpDur(i);
+  return typeof d === 'number' && d > 0;
+}
+function cpNextSeg(from){ // 从 from 起找下一个有效段（跳过未设置的段）；都未设置返回 -1
+  for(let k = 0; k < 2; k++){
+    const i = (from + k) % 2;
+    if(cpValid(i)) return i;
+  }
+  return -1;
+}
+function cpParseDur(str, allowZero){ // '5'→300 秒；'5:30'→330；'0:05'→5。非法返回 null；allowZero 时空/'0'→0（未设置/跳过）
   const t = String(str || '').trim();
+  if(allowZero && (t === '' || t === '0')) return 0;
   let m = t.match(/^(\d{1,3})$/), h = t.match(/^(\d{1,2}):([0-5]?\d)$/);
   if(m) return Math.max(1, +m[1] * 60);
   if(h) return Math.max(1, +h[1] * 60 + +h[2]);
   return null;
 }
-function cpFmtDur(sec){ // 300→'5'，330→'5:30'（设置输入框回显用）
+function cpFmtDur(sec){ // 300→'5'，330→'5:30'（输入框回显用）；0→''（该段未设置）
+  if(!(sec > 0)) return '';
   if(sec % 60 === 0) return String(sec / 60);
   return Math.floor(sec/60) + ':' + String(sec%60).padStart(2,'0');
 }
@@ -3836,6 +3871,8 @@ function cpFmt(remain){ // 带符号 时:分:秒
   return neg + hh + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
 }
 function cpTick(){
+  if(cpPaused) return; // 暂停：冻结显示，不走时/不抖/不提醒
+  if(!cpValid(cpIdx)) return; // 当前段未设置：不计时
   const elapsed = Math.floor((Date.now() - cpStart) / 1000);
   const remain = cpDur() - elapsed;
   cpTimeEl.textContent = cpFmt(remain);
@@ -3847,11 +3884,56 @@ function cpTick(){
   if(over && !cpWasOver && S.countNotify) cpNotifyStart(); // 到时沿：系统提醒
   cpWasOver = over;
 }
-function cpStartSeg(i){
+function cpStartSeg(i){ // 进入段 i；若该段未设置则跳过到下一段；两段都未设置则不计时
+  const seg = cpNextSeg(i);
   cpNotifyStop(); // 进入新段：停闪、恢复标题/图标
-  cpIdx = i; cpStart = Date.now(); cpWasOver = false;
-  cpSecEl.textContent = i === 0 ? '距离起立还有' : '距离坐下还有';
+  if(seg < 0){ // 两段都未设置时长：显示占位，不启动
+    cpIdx = 0; cpStart = Date.now(); cpWasOver = false; cpPaused = false;
+    cpSecEl.textContent = '未设置时长'; cpTimeEl.textContent = '--:--:--';
+    cpTimeEl.classList.remove('over'); countPop.classList.remove('shake','big');
+    return;
+  }
+  cpIdx = seg; cpStart = Date.now(); cpWasOver = false; cpPaused = false;
+  cpSecEl.textContent = cpIdx === 0 ? '距离起立还有' : '距离坐下还有';
   cpTick();
+}
+function cpPauseCtl(){ // 暂停/继续按钮：暂停时冻结当前剩余，继续时按冻结值续走
+  if(!cpValid(cpIdx)) { toast('该段未设置时长，无可暂停的倒计时'); return; }
+  const pauseBtn = document.getElementById('cpPause');
+  if(!cpPaused){
+    cpFreeze = cpDur() - Math.floor((Date.now() - cpStart) / 1000);
+    cpPaused = true;
+    cpTimeEl.textContent = cpFmt(cpFreeze);
+    cpTimeEl.classList.toggle('over', cpFreeze < 0);
+    countPop.classList.remove('shake','big'); // 暂停停抖、退出放大态
+    cpNotifyStop();
+    pauseBtn.querySelector('.ic-pause').style.display = 'none';
+    pauseBtn.querySelector('.ic-play').style.display = '';
+    pauseBtn.setAttribute('aria-label','继续倒计时'); pauseBtn.title = '继续';
+    toast('已暂停（' + cpSecEl.textContent + ' ' + cpFmt(cpFreeze) + '）');
+  }else{
+    // 继续：用冻结剩余倒推起点；冻结为负说明曾到时，允许重新提醒
+    cpStart = Date.now() - (cpDur() - cpFreeze) * 1000;
+    cpPaused = false;
+    cpWasOver = false;
+    pauseBtn.querySelector('.ic-pause').style.display = '';
+    pauseBtn.querySelector('.ic-play').style.display = 'none';
+    pauseBtn.setAttribute('aria-label','暂停倒计时'); pauseBtn.title = '暂停';
+    cpPlace(); cpTick();
+    toast('已继续（' + cpSecEl.textContent + '）');
+  }
+}
+function cpResetCtl(){ // 重置按钮：当前段从完整时长重新开始，清除暂停/放大/抖动/提醒
+  if(!cpValid(cpIdx)) { toast('该段未设置时长，无可重置的倒计时'); return; }
+  cpNotifyStop();
+  countPop.classList.remove('shake','big');
+  cpStart = Date.now(); cpWasOver = false; cpPaused = false; cpFreeze = 0;
+  const pauseBtn = document.getElementById('cpPause');
+  pauseBtn.querySelector('.ic-pause').style.display = '';
+  pauseBtn.querySelector('.ic-play').style.display = 'none';
+  pauseBtn.setAttribute('aria-label','暂停倒计时'); pauseBtn.title = '暂停';
+  cpPlace(); cpTick();
+  toast('已重置（' + cpSecEl.textContent + '）');
 }
 function cpPlace(){ // 应用/钳制窗体位置（存像素，视口变化自动收回）；放大态跳过（.big 以 !important 居中，勿用放大尺寸污染内联位置）
   if(countPop.classList.contains('big')) return;
@@ -3866,8 +3948,12 @@ function cpPlace(){ // 应用/钳制窗体位置（存像素，视口变化自�
 }
 function countRun(){
   countPop.classList.add('on');
+  const pauseBtn = document.getElementById('cpPause');
+  pauseBtn.querySelector('.ic-pause').style.display = '';
+  pauseBtn.querySelector('.ic-play').style.display = 'none';
+  pauseBtn.setAttribute('aria-label','暂停倒计时'); pauseBtn.title = '暂停';
   cpPlace();
-  cpStartSeg(0);
+  cpStartSeg(0); // 从段①起，自动跳过未设置的段
   if(cpTimer) clearInterval(cpTimer);
   cpTimer = setInterval(cpTick, 250);
 }
@@ -3875,13 +3961,16 @@ function countStop(){ // 关闭状态不计时：停表、隐藏、复位
   cpNotifyStop();
   countPop.classList.remove('on','shake','big');
   cpTimeEl.classList.remove('over');
-  cpWasOver = false;
+  cpWasOver = false; cpPaused = false; cpFreeze = 0;
   if(cpTimer){ clearInterval(cpTimer); cpTimer = null; }
 }
+document.getElementById('cpPause').addEventListener('click', e => { e.stopPropagation(); cpPauseCtl(); });
+document.getElementById('cpReset').addEventListener('click', e => { e.stopPropagation(); cpResetCtl(); });
 /* 拖动摆放：位移 ≤6px 视为点击（切段），否则拖动并保存位置 */
 let cpDrag = null;
 countPop.addEventListener('pointerdown', e => {
   if(e.pointerType === 'mouse' && e.button !== 0) return;
+  if(e.target.closest('.cp-btn')) return; // 暂停/重置按钮：不触发拖动或切段，交给各自 click
   const r = countPop.getBoundingClientRect();
   cpDrag = { dx: e.clientX - r.left, dy: e.clientY - r.top, sx: e.clientX, sy: e.clientY, moved: false };
   try{ countPop.setPointerCapture(e.pointerId); }catch(err){}
@@ -3914,10 +4003,11 @@ countPop.addEventListener('pointerup', () => {
       countPop.classList.remove('big');
       setTimeout(() => { if(countPop.classList.contains('on')) cpPlace(); }, 380);
     }
-    // 点击 → 下一段（①→②→① 循环）；时间未到时先询问，取消则继续当前计时
-    const remain = cpDur() - Math.floor((Date.now() - cpStart) / 1000);
+    // 点击 → 下一段（跳过未设置的段）；时间未到时先询问，取消则继续当前计时
+    if(!cpValid(cpIdx)){ cpStartSeg(cpIdx); return; } // 当前段未设置：只重找有效段
+    const remain = cpPaused ? cpFreeze : (cpDur() - Math.floor((Date.now() - cpStart) / 1000));
     if(remain > 0 && !confirm('你要提前完成这个阶段吗？')) return;
-    cpStartSeg((cpIdx + 1) % 2);
+    cpStartSeg((cpIdx + 1) % 2); // cpStartSeg 内部会跳过未设置的段
   }
 });
 countPop.addEventListener('pointercancel', () => { cpDrag = null; countPop.classList.remove('dragging'); });
@@ -3957,14 +4047,14 @@ document.getElementById('tglCountNotify').addEventListener('change', e => {
   // 若当前正处于超时态，立即开始提醒
   if(countPop.classList.contains('on') && cpTimeEl.classList.contains('over')) cpNotifyStart();
 });
-function cpApplyDur(which){ // 修改时长：非法回退旧值；合法则保存，运行中重起当前段生效
+function cpApplyDur(which){ // 修改时长：非法回退旧值；空/'0'=该段不计时（跳过）；合法保存，运行中重起当前段
   const el = document.getElementById(which === 1 ? 'countIn1' : 'countIn2');
-  const v = cpParseDur(el.value);
-  if(v == null){ el.value = cpFmtDur(which === 1 ? S.count1 : S.count2); toast('时长格式：分钟数，或「分:秒」（如 5:30）'); return; }
+  const v = cpParseDur(el.value, true);
+  if(v == null){ el.value = cpFmtDur(which === 1 ? S.count1 : S.count2); toast('时长格式：分钟数，或「分:秒」（如 5:30）；留空=该段不计时'); return; }
   if(which === 1) S.count1 = v; else S.count2 = v;
   el.value = cpFmtDur(v);
   save();
-  if(countPop.classList.contains('on')) cpStartSeg(cpIdx);
+  if(countPop.classList.contains('on')) cpStartSeg(cpIdx); // 重起：若当前段被清空会自动跳到下一段
 }
 for(const [id, which] of [['countIn1',1],['countIn2',2]]){
   const el = document.getElementById(id);
