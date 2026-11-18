@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v2.2.7</title>
+<title>Atrium · 导航 v2.2.8</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -696,7 +696,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 }
 /* ===== 悬浮倒计时窗（两段轮流，超时负数+抖动，点击切换） ===== */
 #countPop{
-  position:fixed;z-index:180;width:10vw;min-width:min(140px,100vw);max-width:176px;
+  position:fixed;z-index:180;width:10vw;min-width:min(156px,100vw);max-width:176px;
   padding:30px 8px 11px;border-radius:16px;cursor:grab;user-select:none;-webkit-user-select:none;
   display:none;flex-direction:column;align-items:center;gap:1px;touch-action:none;
   background:rgba(30,32,40,.36);
@@ -707,7 +707,12 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 }
 #countPop.on{display:flex}
 #countPop.dragging{cursor:grabbing;box-shadow:0 18px 44px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.3), inset 0 0 0 1px rgba(255,255,255,.16)}
-#countPop .cp-sec{position:absolute;top:6px;left:6px;max-width:calc(100% - 62px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:600;color:var(--ink-sub);letter-spacing:.1em}
+#countPop .cp-sec{position:absolute;top:6px;left:6px;max-width:calc(100% - 62px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:600;color:var(--ink-sub);letter-spacing:.1em;display:flex;align-items:center;gap:4px}
+#countPop .cp-pose{height:15px;width:auto;flex:none;display:block;object-fit:contain;opacity:.95}
+#countPop .cp-pose-sit{display:none}
+#countPop .cp-sec.sit .cp-pose-stand{display:none}
+#countPop .cp-sec.sit .cp-pose-sit{display:block}
+#countPop .cp-sec.none .cp-pose{display:none}
 #countPop .cp-row{display:flex;align-items:baseline;justify-content:center;gap:4px}
 #countPop .cp-time{
   font-size:clamp(14px,1.9vw,26px);font-weight:800;line-height:1.12;white-space:nowrap;
@@ -1054,7 +1059,11 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 
 <!-- 站立活动倒计时：两段轮流；超时负数计时+抖动；点击进入下一段（未到时间会询问是否提前完成；「到时放大提醒」开启时归零放大 300% 居中全屏，点击恢复；「倒计时系统提醒」开启时标题闪烁+系统通知；可在设置开关） -->
 <div id="countPop" role="timer" aria-label="站立活动倒计时">
-  <span class="cp-sec" id="cpSec">距离起立还有</span>
+  <span class="cp-sec" id="cpSec">
+    <img class="cp-pose cp-pose-stand" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAAwCAYAAADkStGdAAADrUlEQVR42tWXzYscVRTFf/dV9eRjGF3ohAgiBle6MBJQUZFETaJgcG8WbtzlP3Dh2nXARchWUFHBlaCoQQRBVyqJK5diGB1lMDOZD2eqj4ucCm9qqrq62jHgg6Kqu1+/U/fcc899D6YYkkJSISmy73Z9/lejuZCkUeNz2QcWfQARIUmHgdeBl4EjwBrwFXApIq5LKiKimjkCSUclfalbY13SmqSbksaSrkk6UdM3C0gy7+8Z4DdJy5J+9/WrpE1JP0pa9PxWZlIHQBERY+Bp4BVgGShMb/J1AFgBHgXOe36aGiQbzwJzgCbkdBt4pn6/WUDuAsY9wtkGDgE4msEg101TVyRjoASW6jwOAakX/dy8lx0R1fM+naYkWtXl+5tW17KkpcYlSR9JmuuKYhormZN0UNJbro18bEn6wPItJtVJDAB9ADgHLAKrwJWI+KHNIaYCcVGNgFeBY/76JrDl3BTO0yE/rwDvRMSKpNSlsl2F6PsbGS2V2sc4++1dm+Ued44OQ5wHvgXuB9atwpigxMLXqYi42owmdUj6ceAhoLJ9jExP2zUy0ALwXNu6XbI7DRzsqfYmIzvAGUt5nFO2CyQiKkkHgBeAjQGKD2ATOAE8aKr2gmTFdBx42LmIASDbwL3AyebaqUUEzwOHnY/BNQy85OeqDWRs+Z51LobaRDJlT0m6zyqN2yCWnIBHzOtGj2y7KNsCjgKn8iBSI6LT7iHbk5pQD105ZUiKui9Xvp8F/s6kmwZEUbfmDeAJSUe8g4l0S7khe9Rj3u6U5nfdldyXi23/b2TKjgFP1r+n7G3PWII7Nr5rwM89RSkv/IdtaGRVJeDFek7KpHbOz5UlfMVvV0yRhwL4IqNtDTgp6e6IqHLO1+1Ti8BPwIfAfEsUaunz88DXwGfAPfYx1Ykvs8kXgPedj2+8/ZxrASkbhVpHcgN4zRU/D3wfEX9JSmXdySLiT+Djhs20Vf2qcxZNoIhYAz5pND+lluNB6b4ybqFIwNtOdNmgTl5j5DVSHnrtwKrrpa1PZ3K94Qj3uIGtpGrmLfVsiYoOJcUky4kI5S9aznB20dCDU+IOjHIf11IbbfsNchusKZw7Qtf/DqRWVOyHuvRfRKKWYtSQE0LqsIaw+1bZ7rByU1rNgHYyl95sSnfanf0F79g3ff9O0oKky/684fulSWfG6LGGBJx3K10CLkbEL5IW3H+OA1eBi/W2dqooJnnQpLe1zcdMxzlTV88bR8Q4izKyFqyuKP4BTuuLay1sD78AAAAASUVORK5CYII=" alt="" aria-hidden="true">
+    <img class="cp-pose cp-pose-sit" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACIAAAAwCAYAAAB0WahSAAAFBElEQVR42rWZS6hVVRjH/9++514f+QhvJalh3uugaFCgEWHlIIzEqzQIQvCaQVERjSxJiCihWTSpkaPoIdGDhIoaCFnhIFCKXgN7mOSjRNGrpud6ztm/Bn4rPnb7PK53nwWbffZaa+/1Pf/ff60jdWjAAGAl/bWy/uk06yBEZma5/14k6WpJdUlHzWzS+83MUL9a0hZYB+wBznG5XQK+B7YBM+LcfgiR+f0FOrc9wDBglQsDDPh9ky/WBBpAHq4mUPfx9z2Oskrd4dcc4JewaLvW8PuaqMSVtqhJ5oG3UtJySUjq5eMPVGGIMpMucyHoMeNG+iVIo1NaFz0qqVm1IMkCP/nHrYtV8Dnf9SV1HTX3FgKy2FoeyBeBm2PaV5U1g35fCUwEYZph8aZnFMDzlQrRBlXXAIfbWKQJvORCVyKEpXoBzJV0m6QDkibNrAUslPSIpLslzZJ0UdK3kt41sx8rt4CD2Beu7W5gCKiFOaPAQ8AG4F5gWV/qDDASTA6wKoxtDZCeWh14sl9Bui/Uk9eDJf4pBO2kP58HllYVJ5lDe0PShwHI1nuZH5Y0O8D9gKQhx5mrJI17WbAqy/6I846WazwGzASOBuyIOJJ7cZxbBRXIzCx3Nva7pL1Bu4fNrC7pU3/OC5bMvThucKtk/eAhAGeAecBqf84DkMXA/soRefoEKYDYMHA8LLbFic8fJe7JA9reNV1OkkmSA1pmZqckfR6K2iYza0naXeIeC0H8RKFwVuKe+4PWk8ASYEUb96Tns8BoJbhSoIoHw2LP+fjPJe6JFXpH2vNMi4945A+Y2XlJHwVTb/TfH5S4J7poMzD/sizUPIDjZVeCKXf4Hia1W4GbSlxTzKAtvXy/p52eS16TtE/S7d79qpltBfZLWiGpVSDWuX9rv6SngtVi8B41s7+nYpWa358JGh/2NN5WsACFwKVNfw6cAB7tOaCDe0bDVhMnSkuCEHmHRSnBm1S1l5YJ8z/JHPLNzH6T9HUw8WYzOyLpG3dNw10Qr7QNKeJN5u/MkLSubO2sSza9Fz62HpgjaWeowlmHizbMf21Z9rXL+TTpM0knJV0jab6kB83sDTfvmAtTDPrc5y4rUc4krQIWmdmxeKzR9XwEeFPSuGvzpaTHJV2QtEDSYNC8aIGPJS0O+x+FbBs3s7eBmpk1u2aPI+1YyJTcGVvdGdo5h/cJv05632PAjpIMSycLu6ZcJIFZwCGm1p71rKOkNgH8BSyIlT/rVgjN7KKkXZImPF7OuIlThpyVdErSaUknfF7uWXcguCSWg4WSVndJmNJCONep5A3ALYGfAGx0fBlxMr0cuNbfe7qDe3ZOi8O4q34NH76nw9zrPW6iWxK4HQJmJ4WzKVCEdEQ1o2DOIR9PwZ1oY2ZmxyV9UoCEhDE3Sroz9fUkiOd67sedxTTFxzEzzCwvbDHeKqSwwpnKWvUSKEHDTNJ/97L9cxoP83Pv3yfpBxckL6x7HzBoZq2skxBBw9zMWm6ResEql3xeI8zNA9Gqe9bFg5+07nJ3UVuIT4T6Ot/R5UGjeY6OSbvFfjI909M0zfvT2Zo5u3vRkTilfiZp0uGgK0s771HeCuW8HUNLFCBx2O3+nSG/v1Ly3stpzU5E94KkI26BIj+lYOZo9mS90wnM3CrbJR1zDoykdyS95mOdCS0w6JvwvBD1VnIIGFvTzC5UeoRV5fvpb5eES3HsXzaPT60M1SiMAAAAAElFTkSuQmCC" alt="" aria-hidden="true">
+    <span id="cpSecText">距离起立还有</span>
+  </span>
   <div class="cp-row">
     <span class="cp-time" id="cpTime">00:05:00</span>
   </div>
@@ -1378,7 +1387,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '2.2.7';
+const APP_VER = '2.2.8';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -3830,6 +3839,7 @@ document.getElementById('cpNotifyAuth').addEventListener('click', cpNotifyAsk);
 /* ===== 站立活动倒计时：两段轮流 → 超时负数计时（红字+抖动）→ 点击进入下一段循环 ===== */
 const countPop = document.getElementById('countPop');
 const cpSecEl = document.getElementById('cpSec');
+const cpSecText = document.getElementById('cpSecText');
 const cpTimeEl = document.getElementById('cpTime');
 const CP_REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)');
 let cpIdx = 0;      // 当前段：0=段①，1=段②
@@ -3892,12 +3902,13 @@ function cpStartSeg(i){ // 进入段 i；若该段未设置则跳过到下一段
   cpNotifyStop(); // 进入新段：停闪、恢复标题/图标
   if(seg < 0){ // 两段都未设置时长：显示占位，不启动
     cpIdx = 0; cpStart = Date.now(); cpWasOver = false; cpPaused = false;
-    cpSecEl.textContent = '未设置时长'; cpTimeEl.textContent = '--:--:--';
+    cpSecText.textContent = '未设置时长'; cpSecEl.classList.remove('sit'); cpSecEl.classList.add('none'); cpTimeEl.textContent = '--:--:--';
     cpTimeEl.classList.remove('over'); countPop.classList.remove('shake','big');
     return;
   }
   cpIdx = seg; cpStart = Date.now(); cpWasOver = false; cpPaused = false;
-  cpSecEl.textContent = cpIdx === 0 ? '距离起立还有' : '距离坐下还有';
+  cpSecText.textContent = cpIdx === 0 ? '距离起立还有' : '距离坐下还有';
+  cpSecEl.classList.remove('none'); cpSecEl.classList.toggle('sit', cpIdx === 1);
   cpTick();
 }
 function cpPauseCtl(){ // 暂停/继续按钮：暂停时冻结当前剩余，继续时按冻结值续走
@@ -3913,7 +3924,7 @@ function cpPauseCtl(){ // 暂停/继续按钮：暂停时冻结当前剩余，�
     pauseBtn.querySelector('.ic-pause').style.display = 'none';
     pauseBtn.querySelector('.ic-play').style.display = '';
     pauseBtn.setAttribute('aria-label','继续倒计时'); pauseBtn.title = '继续';
-    toast('已暂停（' + cpSecEl.textContent + ' ' + cpFmt(cpFreeze) + '）');
+    toast('已暂停（' + cpSecText.textContent + ' ' + cpFmt(cpFreeze) + '）');
   }else{
     // 继续：用冻结剩余倒推起点；冻结为负说明曾到时，允许重新提醒
     cpStart = Date.now() - (cpDur() - cpFreeze) * 1000;
@@ -3923,7 +3934,7 @@ function cpPauseCtl(){ // 暂停/继续按钮：暂停时冻结当前剩余，�
     pauseBtn.querySelector('.ic-play').style.display = 'none';
     pauseBtn.setAttribute('aria-label','暂停倒计时'); pauseBtn.title = '暂停';
     cpPlace(); cpTick();
-    toast('已继续（' + cpSecEl.textContent + '）');
+    toast('已继续（' + cpSecText.textContent + '）');
   }
 }
 function cpResetCtl(){ // 重置按钮：当前段从完整时长重新开始，清除暂停/放大/抖动/提醒
@@ -3936,7 +3947,7 @@ function cpResetCtl(){ // 重置按钮：当前段从完整时长重新开始，
   pauseBtn.querySelector('.ic-play').style.display = 'none';
   pauseBtn.setAttribute('aria-label','暂停倒计时'); pauseBtn.title = '暂停';
   cpPlace(); cpTick();
-  toast('已重置（' + cpSecEl.textContent + '）');
+  toast('已重置（' + cpSecText.textContent + '）');
 }
 function cpPlace(){ // 应用/钳制窗体位置（存像素，视口变化自动收回）；放大态跳过（.big 以 !important 居中，勿用放大尺寸污染内联位置）
   if(countPop.classList.contains('big')) return;
