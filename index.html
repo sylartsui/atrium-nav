@@ -816,6 +816,9 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 .mp-add-btns button{
   flex:1;border:none;border-radius:10px;padding:6px 0;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;
 }
+/* 编辑行「保存」「取消」：白底深字 */
+.mp-edit-row .me-ok,.mp-edit-row .me-cancel{background:#fff;color:#1e2028}
+.mp-edit-row .me-ok:hover,.mp-edit-row .me-cancel:hover{background:rgba(255,255,255,.86)}
 #mpAddOk{background:var(--accent);color:#fff}
 #mpAddOk:disabled{opacity:.45;cursor:not-allowed}
 #mpAddCancel{background:var(--hover-fill);color:var(--ink-main)}
@@ -4301,13 +4304,28 @@ mpList.addEventListener('click', e => {
       const dur = cpParseDur(wrap.querySelector('.me-dur').value);
       if(!name){ toast('请填写名称'); return; }
       if(dur == null){ toast('时长格式：分钟数，或「分:秒」（如 5:30）'); return; }
+      const durChanged = (dur !== it.dur);
       it.name = name; it.dur = dur;
-      it.endTs = Date.now() + dur*1000; it.freeze = dur; it.fired = false; it.stopped = false; it.paused = true; // 编辑后重置为暂停态，点▶才走
+      if(durChanged){
+        // 时长改了：按新时长重新计时，立刻执行
+        it.endTs = Date.now() + dur*1000; it.freeze = dur; it.fired = false; it.stopped = false; it.paused = false;
+      }else if(it.stopped || (!it.paused && mcRemain(it) <= 0)){
+        // 时长没变但已停止/到时：没有进度可续，按原时长重新走
+        it.endTs = Date.now() + dur*1000; it.freeze = dur; it.fired = false; it.stopped = false; it.paused = false;
+      }else if(it.paused){
+        // 时长没变、暂停中：从冻结剩余继续（冻结<=0 说明曾到时，允许重新提醒）
+        if(it.freeze <= 0) it.fired = false;
+        it.endTs = Date.now() + it.freeze*1000; it.stopped = false; it.paused = false;
+      }else{
+        // 时长没变、运行中：保留原进度，只更新名称
+        it.paused = false; it.stopped = false;
+      }
       if(mcAlertId === it.id) mcAlertDismiss();
       mcNotifyStop();
       save();
+      toast(durChanged ? '「'+name+'」已按新时长重新计时' : '「'+name+'」已保存，继续原倒计时');
     }
-    mcEditId = null; mcRender(); mcPlace(); toast('已修改（点 ▶ 开始计时）');
+    mcEditId = null; mcRender(); mcPlace();
     return;
   }
   const cancelBtn = e.target.closest('.me-cancel');
