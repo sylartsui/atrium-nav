@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v2.2.7</title>
+<title>Atrium · 导航 v2.2.8</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -747,11 +747,16 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 }
 #countPop.big.shake{animation:cpBigShake .5s linear .32s infinite}
 #countPop{transition:transform .32s cubic-bezier(.34,1.4,.64,1)}
-#countPop.big{ /* 到时放大提醒：300% + 全屏居中；点击后移除即恢复原大小原位（原 left/top 内联值仍在） */
+#countPop.big{ /* 到时放大提醒：300% + 16:9 居中；隐藏暂停/重置按钮；点击后移除即恢复原大小原位（原 left/top 内联值仍在） */
   left:50% !important; top:50% !important;
+  width:min(185px,23.1vw); min-width:0; max-width:none; height:auto; aspect-ratio:16/9;
+  padding:12px 14px; justify-content:center; gap:6px;
   transform:translate(-50%,-50%) scale(3);
   z-index:600;cursor:pointer;
 }
+#countPop.big .cp-ctrl{display:none}
+#countPop.big .cp-sec{top:8px;left:10px;max-width:calc(100% - 20px)}
+#countPop.big .cp-time{font-size:min(30px,3.74vw)}
 /* ===== 多倒计时：可添加多个（名称+倒计时），浮窗随内容增高，可拖动 ===== */
 #multiPop{
   position:fixed;z-index:185;width:clamp(219px,20.9vw,314px);
@@ -827,11 +832,12 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 #mpAddOk{background:var(--accent);color:#fff}
 #mpAddOk:disabled{opacity:.45;cursor:not-allowed}
 #mpAddCancel{background:var(--hover-fill);color:var(--ink-main)}
-/* 到时独立提醒窗体：样式参考站立倒计时放大提醒（居中、300%、红字、抖动）；原浮窗不动 */
+/* 到时独立提醒窗体：300% + 16:9 居中、无操作按钮；原浮窗不动 */
 #mcAlert{
-  position:fixed;left:50%;top:50%;z-index:610;width:10vw;min-width:150px;max-width:260px;
-  padding:14px 12px 16px;border-radius:20px;
-  display:none;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:var(--ink-main);
+  position:fixed;left:50%;top:50%;z-index:610;width:min(185px,23.1vw);min-width:0;max-width:none;
+  height:auto;aspect-ratio:16/9;
+  padding:12px 14px;border-radius:20px;
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;color:var(--ink-main);
   background:rgba(30,32,40,.42);
   backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);
   box-shadow:0 16px 46px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.28), inset 0 0 0 1px rgba(255,255,255,.16);
@@ -851,7 +857,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 #mcAlert.on.shake{animation:mcAlertShake .5s linear .3s infinite}
 #mcAlert .mca-name{font-size:11px;font-weight:700;letter-spacing:.06em;color:#fff;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #mcAlert .mca-time{
-  font-size:clamp(13px,1.7vw,23px);font-weight:800;line-height:1.12;white-space:nowrap;
+  font-size:min(30px,3.74vw);font-weight:800;line-height:1.12;white-space:nowrap;
   font-variant-numeric:tabular-nums;color:#FF453A;text-shadow:0 1px 5px rgba(255,69,58,.45);
 }
 #mcAlert .mca-hint{font-size:9px;color:var(--ink-weak);margin-top:2px}
@@ -1099,7 +1105,6 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 <div id="mcAlert" role="alertdialog" aria-label="倒计时到时提醒">
   <span class="mca-name" id="mcaName"></span>
   <span class="mca-time" id="mcaTime">-00:00:00</span>
-  <span class="mca-hint">点击关闭</span>
 </div>
 
 <!-- 日历计划任务：右下角图标 + 其上方贴右毛玻璃窗体（宽 23vw·高 70vh）+ 已完成全屏居中管理 -->
@@ -1297,7 +1302,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
     </div>
     <div class="set-row" style="margin-top:8px">
       <label class="tgl"><input type="checkbox" id="tglMultiBig"><span class="tgl-track"></span></label>
-      <span class="hint">到时放大提醒：倒计时归零时原浮窗不动，另外弹出居中放大 300% 的提醒窗体（红字＋抖动，样式同站立倒计时），点击关闭；点掉提醒窗后该条倒计时也停止</span>
+      <span class="hint">到时放大提醒：倒计时归零时原浮窗不动，另外弹出居中放大 300% 的提醒窗体（红字＋抖动，样式同站立倒计时）；点掉提醒窗后该条倒计时也停止</span>
     </div>
     <div class="set-row" style="margin-top:8px">
       <label class="tgl"><input type="checkbox" id="tglMultiNotify"><span class="tgl-track"></span></label>
@@ -1387,7 +1392,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '2.2.7';
+const APP_VER = '2.2.8';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
