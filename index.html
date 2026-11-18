@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v2.2.6</title>
+<title>Atrium · 导航 v2.2.7</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -696,8 +696,8 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 }
 /* ===== 悬浮倒计时窗（两段轮流，超时负数+抖动，点击切换） ===== */
 #countPop{
-  position:fixed;z-index:180;width:10vw;min-width:108px;max-width:176px;
-  padding:9px 8px 11px;border-radius:16px;cursor:grab;user-select:none;-webkit-user-select:none;
+  position:fixed;z-index:180;width:10vw;min-width:min(140px,100vw);max-width:176px;
+  padding:30px 8px 11px;border-radius:16px;cursor:grab;user-select:none;-webkit-user-select:none;
   display:none;flex-direction:column;align-items:center;gap:1px;touch-action:none;
   background:rgba(30,32,40,.36);
   backdrop-filter:blur(22px) saturate(1.6);
@@ -707,14 +707,14 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 }
 #countPop.on{display:flex}
 #countPop.dragging{cursor:grabbing;box-shadow:0 18px 44px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.3), inset 0 0 0 1px rgba(255,255,255,.16)}
-#countPop .cp-sec{font-size:11px;font-weight:600;color:var(--ink-sub);letter-spacing:.1em}
+#countPop .cp-sec{position:absolute;top:6px;left:6px;max-width:calc(100% - 62px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:600;color:var(--ink-sub);letter-spacing:.1em}
 #countPop .cp-row{display:flex;align-items:baseline;justify-content:center;gap:4px}
 #countPop .cp-time{
   font-size:clamp(14px,1.9vw,26px);font-weight:800;line-height:1.12;white-space:nowrap;
   font-variant-numeric:tabular-nums;text-shadow:0 1px 3px rgba(0,0,0,.30);
 }
 #countPop .cp-time.over{color:#FF453A;text-shadow:0 1px 4px rgba(255,69,58,.35)}
-#countPop .cp-ctrl{display:flex;gap:8px;margin-top:4px}
+#countPop .cp-ctrl{position:absolute;top:5px;right:5px;display:flex;gap:4px}
 #countPop .cp-btn{
   border:none;background:transparent;color:var(--ink-sub);cursor:pointer;flex:none;
   width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;
@@ -749,7 +749,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 }
 /* ===== 多倒计时：可添加多个（名称+倒计时），浮窗随内容增高，可拖动 ===== */
 #multiPop{
-  position:fixed;z-index:185;width:clamp(231px,22vw,330px);
+  position:fixed;z-index:185;width:clamp(219px,20.9vw,314px);
   padding:10px;border-radius:18px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;
   display:none;flex-direction:column;gap:8px;color:var(--ink-main);
   background:rgba(30,32,40,.40);
@@ -1375,7 +1375,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '2.2.6';
+const APP_VER = '2.2.7';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
