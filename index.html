@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v2.2.9</title>
+<title>Atrium · 导航 v2.3.0</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -915,6 +915,34 @@ body.ink-dark #wxPanel .wx7-handle:hover .ln{background:rgba(17,19,23,.85)}
 }
 #mpAddRow input:focus{background:var(--press-fill)}
 #mpAddRow input::placeholder{color:var(--ink-weak)}
+/* 时长框内的时钟图标：点击切换「按时间点计时」24小时制模式 */
+.mp-dur-wrap{position:relative;width:100%}
+.mp-dur-wrap input{padding-right:36px}
+.mp-clock-btn{
+  position:absolute;right:5px;top:50%;transform:translateY(-50%);
+  width:24px;height:24px;padding:0;border:none;border-radius:8px;background:transparent;
+  color:var(--ink-weak);cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.mp-clock-btn svg{width:15px;height:15px;pointer-events:none}
+.mp-clock-btn:hover{background:var(--press-fill);color:var(--ink-main)}
+.mp-dur-wrap input,.mp-clock-btn,.mp-clock-btn svg{transition:height .28s cubic-bezier(.2,.72,.3,1),font-size .28s cubic-bezier(.2,.72,.3,1),width .28s cubic-bezier(.2,.72,.3,1),background .28s,color .28s,box-shadow .28s}
+/* 时间点模式：框体增大 50%；输入内容字体在 18.75 基础上再 +50%=28.125px 加粗白字；说明文字不放大保持 12.5px */
+.mp-dur-wrap.time-mode input,
+.mp-dur-wrap.time-mode #mpDur{
+  height:48px;font-size:28.125px;font-weight:800;padding-right:52px;
+  background:var(--press-fill);color:#fff;
+}
+.mp-dur-wrap.time-mode input::placeholder,
+.mp-dur-wrap.time-mode #mpDur::placeholder{font-size:12.5px;font-weight:400;color:rgba(255,255,255,.5)}
+/* 空输入时说明文字垂直居中：小号 placeholder 基线偏下，用 padding-bottom 上移 14px 校正 */
+.mp-dur-wrap.time-mode input:placeholder-shown,
+.mp-dur-wrap.time-mode #mpDur:placeholder-shown{padding-bottom:14px}
+.mp-dur-wrap.time-mode .mp-clock-btn{
+  width:36px;height:36px;right:6px;border-radius:11px;
+  background:var(--accent);color:#fff;
+  box-shadow:0 0 14px var(--accent),0 2px 8px rgba(0,0,0,.3);
+}
+.mp-dur-wrap.time-mode .mp-clock-btn svg{width:22.5px;height:22.5px;filter:drop-shadow(0 0 4px rgba(255,255,255,.7))}
 .mp-add-btns{display:flex;gap:6px}
 .mp-add-btns button{
   flex:1;border:none;border-radius:10px;padding:6px 0;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;
@@ -1186,7 +1214,12 @@ body.ink-dark #wxPanel .wx7-handle:hover .ln{background:rgba(17,19,23,.85)}
   <div id="mpList"></div>
   <div id="mpAddRow">
     <input type="text" id="mpName" maxlength="40" placeholder="名称（如：煮面）">
+  <div class="mp-dur-wrap">
     <input type="text" id="mpDur" inputmode="numeric" placeholder="时长：分钟 或 分:秒（如 5:30）">
+    <button type="button" class="mp-clock-btn" id="mpClockBtn" aria-label="按时间点计时（24小时制）" title="按时间点计时（24小时制）">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+    </button>
+  </div>
     <div class="mp-add-btns">
       <button id="mpAddOk">添加</button>
       <button id="mpAddCancel">取消</button>
@@ -1425,7 +1458,7 @@ body.ink-dark #wxPanel .wx7-handle:hover .ln{background:rgba(17,19,23,.85)}
       <span class="hint">倒计时系统提醒：到点时标签页标题闪烁，并弹 Windows 系统通知（与站立倒计时共用授权，首次需授权一次）</span>
     </div>
     <span class="hint" style="margin-top:6px;display:block;font-size:11.5px;color:var(--ink-weak);font-weight:500">
-      时间不在设置中填写：开启后在浮窗点「＋ 添加」，输入名称与时长（分钟，或「分:秒」如 5:30）；每条独立到时，红字负数计时，可单独删除；关闭总开关时浮窗隐藏、计时暂停（重新打开继续）
+      时间不在设置中填写：开启后在浮窗点「＋ 添加」，输入名称与时长（分钟，或「分:秒」如 5:30）；时长框右侧的时钟图标可切换为「按时间点计时」——输入 24 小时的「时:分」（如 18:30），添加时自动折算为到该时刻的倒计时，若该时刻早于当前则算到次日；每条独立到时，红字负数计时，可单独删除；关闭总开关时浮窗隐藏、计时暂停（重新打开继续）
     </span>
   </div>
   <div class="set-sec">
@@ -1508,7 +1541,7 @@ body.ink-dark #wxPanel .wx7-handle:hover .ln{background:rgba(17,19,23,.85)}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '2.2.9';
+const APP_VER = '2.3.0';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -1669,6 +1702,8 @@ function normalize(v){
       fired:!!x.fired, stopped:!!x.stopped,
       paused:(typeof x.paused === 'boolean' ? x.paused : true),
       freeze:(typeof x.freeze === 'number' ? x.freeze : x.dur),
+      mode:(x.mode === 'time' ? 'time' : 'dur'),   // 该条创建方式：dur=时长 / time=24小时时间点
+      timeStr:(typeof x.timeStr === 'string' ? x.timeStr : ''), // 时间点模式下的原始输入（如 18:30），供编辑回显
     }));
   return s;
 }
@@ -4482,6 +4517,7 @@ let mcAlertId = null;        // 当前提醒窗体对应的 item id
 let mcEditId = null;         // 正在编辑的 item id
 let mcFlashTimer = null;     // 系统提醒：标题闪烁定时器（独立于站立倒计时）
 let mpDrag = null;           // 拖动状态
+let mpTimeMode = false;      // 时长框「按时间点计时」24小时制模式（点时钟图标切换）
 function mcItems(){ return Array.isArray(S.multiItems) ? S.multiItems : (S.multiItems = []); }
 function mcRemain(it){ // 剩余秒数：运行态按 endTs 走时，暂停/停止态取冻结值
   if(it.paused || it.stopped) return (typeof it.freeze === 'number' ? it.freeze : 0);
@@ -4572,6 +4608,7 @@ const PEN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 const RESET_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
 const PAUSE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
 const PLAY_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>';
+const CLOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>';
 function mcRender(){
   const items = mcItems();
   if(!items.length){ mpList.innerHTML = '<div class="mp-empty">还没有倒计时，点「＋」建一个</div>'; return; }
@@ -4588,10 +4625,18 @@ function mcRender(){
       + '<button class="mp-edit" data-medit="'+it.id+'" aria-label="编辑该倒计时" title="编辑">'+PEN_SVG+'</button>'
       + '<button class="mp-del" data-mdel="'+it.id+'" aria-label="删除该倒计时">−</button></div>'
       + '<span class="mp-time'+(over?' over':'')+'">'+cpFmt(remain)+'</span>'
-      + (editing ? '<div class="mp-edit-row">'
-          + '<input type="text" class="me-name" maxlength="40" value="'+esc(it.name)+'" placeholder="名称">'
-          + '<input type="text" class="me-dur" inputmode="numeric" value="'+cpFmtDur(it.dur)+'" placeholder="时长：分钟 或 分:秒">'
-          + '<div class="mp-add-btns"><button class="me-ok">保存</button><button class="me-cancel">取消</button></div></div>' : '')
+      + (editing ? (() => {
+          const isTime = it.mode === 'time';
+          const durVal = isTime ? (it.timeStr || '') : cpFmtDur(it.dur);
+          const durPh = isTime ? '时间点：24小时制（如 18:30）' : '时长：分钟 或 分:秒';
+          return '<div class="mp-edit-row">'
+            + '<input type="text" class="me-name" maxlength="40" value="'+esc(it.name)+'" placeholder="名称">'
+            + '<div class="mp-dur-wrap'+(isTime?' time-mode':'')+'" data-me-durwrap>'
+              + '<input type="text" class="me-dur" inputmode="numeric" value="'+esc(durVal)+'" placeholder="'+durPh+'">'
+              + '<button type="button" class="mp-clock-btn'+(isTime?' active':'')+'" data-me-clock aria-label="切换按时间点计时" title="'+(isTime?'当前：按时间点计时，点此切回时长':'按时间点计时（24小时制）')+'">'+CLOCK_SVG+'</button>'
+            + '</div>'
+            + '<div class="mp-add-btns"><button class="me-ok">保存</button><button class="me-cancel">取消</button></div></div>';
+        })() : '')
       + '</div>';
   }).join('');
 }
@@ -4626,24 +4671,64 @@ function multiApplyState(){ // 导入配置后 / 开关切换后：回显设置 
   mcSyncAddRow(false);
   mcEditId = null;
 }
+const mpClockBtn = document.getElementById('mpClockBtn');
+function mpSetTimeMode(on){
+  mpTimeMode = !!on;
+  mpClockBtn.classList.toggle('active', mpTimeMode);
+  document.querySelector('.mp-dur-wrap').classList.toggle('time-mode', mpTimeMode);
+  const input = document.getElementById('mpDur');
+  input.placeholder = mpTimeMode ? '时间点：24小时制（如 18:30）' : '时长：分钟 或 分:秒（如 5:30）';
+  input.value = '';
+  mpClockBtn.title = mpTimeMode ? '当前：按时间点计时，点此切回时长' : '按时间点计时（24小时制）';
+}
+/* 24小时制「时:分」→ 距当前时刻的秒数；若该时刻已过（早于当前）则取次日 */
+function mpParseClock(str){
+  const t = String(str || '').trim();
+  const m = t.match(/^(\d{1,2}):([0-5]\d)$/);
+  if(!m) return null;
+  const hh = +m[1], mm = +m[2];
+  if(hh > 23) return null;
+  const now = new Date();
+  const target = new Date(now);
+  target.setHours(hh, mm, 0, 0);
+  let diff = (target.getTime() - now.getTime())/1000;
+  if(diff <= 0) diff += 86400; // 早于当前（含刚好整分已过）→ 次日同一时刻
+  return Math.max(1, Math.floor(diff));
+}
 function mcSyncAddRow(open){
   mpAddRow.classList.toggle('open', !!open);
   if(open){ setTimeout(() => document.getElementById('mpName').focus(), 30); }
-  else{ document.getElementById('mpName').value = ''; document.getElementById('mpDur').value = ''; }
+  else{ document.getElementById('mpName').value = ''; document.getElementById('mpDur').value = ''; mpSetTimeMode(false); }
 }
 function mcAdd(){
   const name = document.getElementById('mpName').value.trim();
-  const dur = cpParseDur(document.getElementById('mpDur').value);
+  const raw = document.getElementById('mpDur').value;
+  let dur = null, label = '';
+  if(mpTimeMode){
+    dur = mpParseClock(raw);
+    if(dur != null) label = '到 ' + raw.trim();
+  }else{
+    dur = cpParseDur(raw);
+    if(dur != null) label = cpFmtDur(dur);
+  }
   if(!name){ toast('请填写名称'); document.getElementById('mpName').focus(); return; }
-  if(dur == null){ toast('时长格式：分钟数，或「分:秒」（如 5:30）'); document.getElementById('mpDur').focus(); return; }
-  mcItems().push({ id:'m'+Date.now()+Math.random().toString(36).slice(2,6), name, dur, endTs:Date.now()+dur*1000, fired:false, paused:false, stopped:false, freeze:dur });
+  if(dur == null){
+    toast(mpTimeMode ? '时间点格式：24小时制「时:分」（如 18:30）' : '时长格式：分钟数，或「分:秒」（如 5:30）');
+    document.getElementById('mpDur').focus(); return;
+  }
+  mcItems().push({
+    id:'m'+Date.now()+Math.random().toString(36).slice(2,6), name, dur,
+    endTs:Date.now()+dur*1000, fired:false, paused:false, stopped:false, freeze:dur,
+    mode:(mpTimeMode ? 'time' : 'dur'), timeStr:(mpTimeMode ? raw.trim() : ''),
+  });
   save(); mcRender(); mcPlace(); mcSyncAddRow(false);
-  toast('已添加倒计时：'+name+'（'+cpFmtDur(dur)+'，开始计时）');
+  toast('已添加倒计时：'+name+'（'+label+'，开始计时）');
 }
 /* 添加行交互 */
 document.getElementById('mpAddToggle').addEventListener('click', e => { e.stopPropagation(); mpAddRow.classList.contains('open') ? mcSyncAddRow(false) : mcSyncAddRow(true); });
 document.getElementById('mpAddCancel').addEventListener('click', e => { e.stopPropagation(); mcSyncAddRow(false); });
 document.getElementById('mpAddOk').addEventListener('click', e => { e.stopPropagation(); mcAdd(); });
+mpClockBtn.addEventListener('click', e => { e.stopPropagation(); mpSetTimeMode(!mpTimeMode); document.getElementById('mpDur').focus(); });
 for(const id of ['mpName','mpDur']){
   document.getElementById(id).addEventListener('keydown', e => {
     if(e.key === 'Enter' && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); mcAdd(); } // 输入法选词回车不添加
@@ -4698,17 +4783,38 @@ mpList.addEventListener('click', e => {
     if(mcEditId){ setTimeout(() => { const row = mpList.querySelector('[data-mid="'+id+'"] .me-name'); if(row) row.focus(); }, 30); }
     return;
   }
+  const meClock = e.target.closest('[data-me-clock]');
+  if(meClock){
+    e.stopPropagation();
+    const durWrap = meClock.closest('[data-me-durwrap]');
+    const toTime = !durWrap.classList.contains('time-mode');
+    durWrap.classList.toggle('time-mode', toTime);
+    meClock.classList.toggle('active', toTime);
+    const input = durWrap.querySelector('.me-dur');
+    input.value = '';
+    input.placeholder = toTime ? '时间点：24小时制（如 18:30）' : '时长：分钟 或 分:秒';
+    meClock.title = toTime ? '当前：按时间点计时，点此切回时长' : '按时间点计时（24小时制）';
+    input.focus();
+    return;
+  }
   const okBtn = e.target.closest('.me-ok');
   if(okBtn){
     e.stopPropagation();
     const wrap = okBtn.closest('[data-mid]'), it = mcItems().find(x => x.id === wrap.getAttribute('data-mid'));
     if(it){
       const name = wrap.querySelector('.me-name').value.trim();
-      const dur = cpParseDur(wrap.querySelector('.me-dur').value);
+      const durWrap = wrap.querySelector('[data-me-durwrap]');
+      const isTime = !!durWrap && durWrap.classList.contains('time-mode');
+      const rawDur = wrap.querySelector('.me-dur').value;
+      const dur = isTime ? mpParseClock(rawDur) : cpParseDur(rawDur);
       if(!name){ toast('请填写名称'); return; }
-      if(dur == null){ toast('时长格式：分钟数，或「分:秒」（如 5:30）'); return; }
+      if(dur == null){
+        toast(isTime ? '时间点格式：24小时制「时:分」（如 18:30）' : '时长格式：分钟数，或「分:秒」（如 5:30）'); return;
+      }
       const durChanged = (dur !== it.dur);
       it.name = name; it.dur = dur;
+      it.mode = (isTime ? 'time' : 'dur');
+      it.timeStr = (isTime ? rawDur.trim() : '');
       if(durChanged){
         // 时长改了：按新时长重新计时，立刻执行
         it.endTs = Date.now() + dur*1000; it.freeze = dur; it.fired = false; it.stopped = false; it.paused = false;
@@ -4726,7 +4832,7 @@ mpList.addEventListener('click', e => {
       if(mcAlertId === it.id) mcAlertDismiss();
       mcNotifyStop();
       save();
-      toast(durChanged ? '「'+name+'」已按新时长重新计时' : '「'+name+'」已保存，继续原倒计时');
+      toast(durChanged ? '「'+name+'」已按'+(isTime?'新时间点':'新时长')+'重新计时' : '「'+name+'」已保存，继续原倒计时');
     }
     mcEditId = null; mcRender(); mcPlace();
     return;
