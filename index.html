@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v2.2.8</title>
+<title>Atrium · 导航 v2.2.9</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -300,6 +300,45 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 .clk-col{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;padding:0 6px;text-align:center}
 .clk-t{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.2px}
 .clk-d{font-size:11px;font-weight:500;color:var(--ink-sub);white-space:nowrap}
+/* 拖动中、仍在任务栏内：轮廓逐步向悬浮窗靠拢（由 --m 0→1 驱动），留余量给拖出后的放大 */
+#clockBtn.drag-src{
+  cursor:grabbing;position:relative;z-index:2;
+  --m:0;--dx:0px;--dy:0px;
+  transform:translate(var(--dx),var(--dy)) scale(calc(1 + var(--m)*.34));
+  background:rgba(30,32,40,calc(var(--m)*.40));
+  -webkit-backdrop-filter:blur(calc(var(--m)*12px)) saturate(calc(1 + var(--m)*.6));
+  backdrop-filter:blur(calc(var(--m)*12px)) saturate(calc(1 + var(--m)*.6));
+  border-radius:calc(22px - var(--m)*8px);
+  box-shadow:0 calc(var(--m)*10px) calc(var(--m)*30px) rgba(0,0,0,calc(var(--m)*.30)),
+             inset 0 1px 0 rgba(255,255,255,calc(var(--m)*.26)),
+             inset 0 0 0 1px rgba(255,255,255,calc(var(--m)*.13));
+}
+/* 时间日期悬浮窗：从任务栏时钟拖离后渐渐实体化，尺寸同多任务倒计时初始窗体 */
+#dateFloat{
+  position:fixed;z-index:186;
+  width:clamp(219px,20.9vw,314px);box-sizing:border-box;
+  padding:14px 12px 12px;border-radius:18px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--ink-main);
+  background:rgba(30,32,40,.40);
+  backdrop-filter:blur(22px) saturate(1.6);-webkit-backdrop-filter:blur(22px) saturate(1.6);
+  box-shadow:0 10px 34px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.26), inset 0 0 0 1px rgba(255,255,255,.13);
+}
+#dateFloat.show{display:flex;transform-origin:center center}
+/* 由拖动中的时钟模块为起点，等比放大并平移到悬浮窗位置——同一个窗体由小变大 */
+#dateFloat.grow{animation:dfGrow var(--df-dur,.5s) cubic-bezier(.2,.72,.3,1) both}
+@keyframes dfGrow{
+  from{opacity:.62;filter:blur(1.5px);transform:translate(var(--df-tx,0px),var(--df-ty,0px)) scale(var(--df-s,.4))}
+  to{opacity:1;filter:blur(0);transform:translate(0,0) scale(1)}
+}
+#dateFloat.dragging{cursor:grabbing;box-shadow:0 18px 44px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.3), inset 0 0 0 1px rgba(255,255,255,.16)}
+#dateFloat .df-time{font-size:clamp(28px,3.2vw,40px);font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;text-shadow:0 2px 8px rgba(0,0,0,.3)}
+#dateFloat .df-date{font-size:12.5px;font-weight:600;color:var(--ink-sub)}
+#dateFloat .df-close{
+  position:absolute;top:7px;right:7px;width:22px;height:22px;border:none;border-radius:50%;
+  background:transparent;color:var(--ink-weak);cursor:pointer;font-size:17px;line-height:1;
+  display:flex;align-items:center;justify-content:center;padding:0;font-family:inherit;
+}
+#dateFloat .df-close:hover{background:var(--press-fill);color:var(--ink-main)}
 #weatherBtn{
   height:44px;border-radius:22px;border:none;cursor:pointer;padding:0 12px;
   background:transparent;display:flex;align-items:center;color:var(--ink-main);flex:none;
@@ -566,6 +605,60 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 #wxPanel .now .ic svg{display:block}
 #wxPanel .now .t{font-size:40px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
 #wxPanel .now .d{font-size:13px;font-weight:500;color:var(--ink-sub)}
+/* 七天预报抽屉：天气窗右侧短线把手，悬停推出独立毛玻璃抽屉；一天一行 */
+#wxPanel .wx7-handle{
+  position:absolute;right:2px;top:50%;transform:translateY(-50%);
+  width:10px;height:34px;cursor:pointer;z-index:3;
+  display:flex;flex-direction:row;align-items:center;justify-content:center;gap:3px;
+}
+#wxPanel .wx7-handle .ln{display:block;width:2px;border-radius:2px;background:rgba(255,255,255,.55);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:background .15s}
+#wxPanel .wx7-handle .ln.a{height:20px}
+#wxPanel .wx7-handle .ln.b{height:11px}
+#wxPanel .wx7-handle:hover .ln{background:rgba(255,255,255,.95)}
+body.ink-dark #wxPanel .wx7-handle .ln{background:rgba(17,19,23,.5);box-shadow:none}
+body.ink-dark #wxPanel .wx7-handle:hover .ln{background:rgba(17,19,23,.85)}
+#wx7Drawer{
+  position:fixed;bottom:82px;left:calc(100% - max(14px,50% - 420px) - 8px);z-index:159;
+  width:268px;border-radius:24px;padding:16px 16px 12px 26px;color:var(--ink-main);
+  display:none;overflow:hidden;
+}
+#wx7Drawer.open{display:flex;flex-direction:column;animation:wx7Slide .52s cubic-bezier(.2,.72,.3,1)}
+#wx7Drawer #wx7Body{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center}
+/* 从天气窗右缘向右滑出：起点搭在窗后、大半已露出，主要位移发生在可见区（不被毛玻璃吃掉） */
+@keyframes wx7Slide{
+  0%{transform:translateX(-125px);opacity:.4}
+  100%{transform:translateX(0);opacity:1}
+}
+#wx7Drawer .w7-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+#wx7Drawer .w7-title{font-size:13px;font-weight:600;flex:1}
+#wx7Drawer .w7-pin{
+  border:none;background:transparent;color:var(--ink-weak);cursor:pointer;flex:none;
+  width:26px;height:26px;border-radius:9px;padding:0;
+  display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;
+}
+#wx7Drawer .w7-pin:hover{background:var(--hover-fill);color:var(--ink-main)}
+#wx7Drawer .w7-pin svg{display:block;width:15px;height:15px}
+/* 阴影长轴加倍后超出 24 视口；扩大 fixed SVG 视口并按比例放大显示，图钉与阴影视觉尺寸不变、不再被裁 */
+#wx7Drawer .w7-pin .w7-pin-fixed{width:18.75px;height:18.75px}
+#wx7Drawer .w7-arrow,#wx7Drawer .w7-pinicon,#wx7Drawer .w7-pin-fixed{transition:opacity .18s}
+#wx7Drawer .w7-pin .w7-pinicon{display:none;transform:rotate(45deg)}
+#wx7Drawer .w7-pin .w7-pin-fixed{display:none}
+#wx7Drawer.open .w7-arrow{display:none}
+#wx7Drawer.open .w7-pinicon{display:block}
+/* 固定态：换成参考图角度的立体图钉（帽朝右上、针朝左下、椭圆帽+法兰），线条风格不变 */
+#wx7Drawer.open .w7-pin.fixed .w7-pinicon{display:none}
+/* 固定态图钉线条实质一些：同色系加深（不变蓝）；投影为针脚基点处向右下拖长的径向渐变椭圆（内深外浅），帽与整体无阴影 */
+#wx7Drawer .w7-pin.fixed{color:var(--ink-main)}
+#wx7Drawer .w7-pin.fixed .w7-pin-fixed{display:block}
+#wx7Drawer .w7-row{display:flex;align-items:center;gap:8px;flex:1;min-height:0;padding:2px;font-size:12px;border-bottom:1px solid var(--ink-sep)}
+#wx7Drawer .w7-row:last-child{border-bottom:none}
+#wx7Drawer .w7-row .day{width:36px;flex:none;color:var(--ink-weak);font-weight:600;font-size:11.5px}
+#wx7Drawer .w7-row .ic{width:20px;height:20px;flex:none}
+#wx7Drawer .w7-row .ic svg{display:block;width:20px;height:20px}
+#wx7Drawer .w7-row .txt{flex:1;min-width:0;color:var(--ink-sub);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#wx7Drawer .w7-row .pop{color:var(--ink-weak);font-size:10px;font-variant-numeric:tabular-nums;flex:none}
+#wx7Drawer .w7-row .temp{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;flex:none;font-size:11.5px}
+#wx7Drawer .w7-empty{padding:14px 2px;font-size:11px;color:var(--ink-weak);text-align:center}
 #wxPanel .rows{margin-top:14px;border-top:1px solid var(--ink-sep);padding-top:10px;display:flex;flex-direction:column;gap:7px}
 #wxPanel .r{display:flex;justify-content:space-between;font-size:12.5px;font-weight:500}
 #wxPanel .r .k{color:var(--ink-weak)}
@@ -1101,6 +1194,13 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
   </div>
 </div>
 
+<!-- 时间日期悬浮窗：从任务栏时钟模块拖离任务栏后渐渐实体化，右上角关闭 -->
+<div id="dateFloat" role="dialog" aria-label="时间日期">
+  <button class="df-close" id="dfClose" aria-label="关闭" title="关闭">×</button>
+  <div class="df-time" id="dfTime">--:--:--</div>
+  <div class="df-date" id="dfDate">----</div>
+</div>
+
 <!-- 多倒计时到时独立提醒窗体：原浮窗不动，另弹此居中放大提醒（红字+抖动），点击关闭 -->
 <div id="mcAlert" role="alertdialog" aria-label="倒计时到时提醒">
   <span class="mca-name" id="mcaName"></span>
@@ -1189,6 +1289,22 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
   </div>
   <div class="rows" id="wxRows"></div>
   <div class="src" id="wxSrc" title="点击立即刷新天气">数据来源 · Open-Meteo</div>
+  <div class="wx7-handle" id="wx7Handle" title="悬停查看 · 点击与天气窗固定">
+    <span class="ln b"></span><span class="ln a"></span>
+  </div>
+</div>
+
+<!-- 七天预报抽屉：天气窗右侧把手悬停推出 -->
+<div id="wx7Drawer" class="glass" role="dialog" aria-label="七天天气预报">
+  <div class="w7-head">
+    <span class="w7-title">七天天气预报</span>
+    <button class="w7-pin" id="wx7Pin" title="点击固定抽屉" aria-label="固定抽屉">
+      <svg class="w7-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l-6 6 6 6M15 6l6 6-6 6"/></svg>
+      <svg class="w7-pinicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6z"/></svg>
+      <svg class="w7-pin-fixed" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><defs><radialGradient id="w7PinShadow" cx="50%" cy="50%" r="65%" fx="23%" fy="72%"><stop offset="0%" stop-color="#000" stop-opacity=".66"/><stop offset="45%" stop-color="#000" stop-opacity=".3"/><stop offset="100%" stop-color="#000" stop-opacity="0"/></radialGradient></defs><ellipse class="w7-shadow" cx="14.28" cy="20.09" rx="11.52" ry="2.31" transform="rotate(15 14.28 20.09)" fill="url(#w7PinShadow)" stroke="none"/><g transform="translate(-1.3 -1.6) rotate(40 14 13)"><ellipse cx="14" cy="5" rx="5" ry="2.3"/><path d="M11 6.9 12.5 13.2 M17 6.9 15.5 13.2"/><ellipse cx="14" cy="13.8" rx="3.8" ry="1.5"/><path class="w7-needle" d="M14 15.2V21"/></g></svg>
+    </button>
+  </div>
+  <div id="wx7Body"></div>
 </div>
 
 <!-- 日出日落面板 -->
@@ -1392,7 +1508,7 @@ body:not(.ink-dark) #hotBar .hi{color:#fff;font-weight:600}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '2.2.8';
+const APP_VER = '2.2.9';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -3098,8 +3214,11 @@ async function fetchWeather(){
   try{
     const loc = await getLocation();
     let name = loc.name;
-    // 城市名统一中文化：已有中文直接用，否则用坐标反查中文地名
+    // 城市名统一中文化：常见英文名直接映射，其余用坐标反查中文地名
     const isCJK = s => /[\u4e00-\u9fa5]/.test(s || '');
+    const CITY_ZH = {shanghai:'上海', beijing:'北京', guangzhou:'广州', shenzhen:'深圳', hangzhou:'杭州', nanjing:'南京', chengdu:'成都', chongqing:'重庆', tianjin:'天津', wuhan:'武汉', xian:'西安', suzhou:'苏州'};
+    const nameKey = String(name || '').trim().toLowerCase().replace(/市$/, '');
+    if(nameKey && CITY_ZH[nameKey]) name = CITY_ZH[nameKey];
     if(!name || !isCJK(name)){
       try{
         const j = await fetchJson(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${loc.lat}&longitude=${loc.lon}&localityLanguage=zh`, 4000);
@@ -3108,8 +3227,8 @@ async function fetchWeather(){
       }catch(e){}
     }
     try{
-      // 主源：Open-Meteo（含昨日/今日/明日三天日出日落，昼夜按事件切换、跨午夜连续）
-      const j = await fetchJson(`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&past_days=1&forecast_days=3&timezone=auto`, 6000);
+      // 主源：Open-Meteo（含昨天+今天起七天，昼夜按事件切换、跨午夜连续；七天预报取今天起 7 天）
+      const j = await fetchJson(`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max,sunrise,sunset&past_days=1&forecast_days=7&timezone=auto`, 6000);
       wxData = {
         name: name || '当前位置',
         temp: Math.round(j.current.temperature_2m),
@@ -3123,12 +3242,19 @@ async function fetchWeather(){
         sunset: (j.daily.sunset[1]||'').slice(11,16),
         srNext: (j.daily.sunrise[2]||'').slice(11,16),
         sunEvents: buildSunEvents(j.daily),
+        weekly: (j.daily.time || []).slice(1, 8).map((date, i) => ({
+          date,
+          code: j.daily.weather_code?.[i + 1] ?? null,
+          max: Math.round(j.daily.temperature_2m_max[i + 1]),
+          min: Math.round(j.daily.temperature_2m_min[i + 1]),
+          pop: j.daily.precipitation_probability_max?.[i + 1],
+        })),
       };
       wxErr.src = 'Open-Meteo';
       saveWxCache();
     }catch(e){
       // 兜底：wttr.in
-      const q = encodeURIComponent(name || 'Shanghai');
+      const q = encodeURIComponent(name || '上海');
       const j = await fetchJson(`https://wttr.in/${q}?format=j1`, 7000);
       const c = j.current_condition?.[0];
       const d = j.weather?.[0];
@@ -3158,6 +3284,10 @@ async function fetchWeather(){
           });
           return ev.sort((x,y)=>x.t-y.t);
         })(j.weather),
+        weekly: (j.weather || []).slice(0, 7).map(w => {
+          const [cat, txt] = WTTR_MAP[+w.hourly?.[4]?.weatherCode] || ['overcast','—'];
+          return { date:w.date, cat, txt, max:Math.round(+w.maxtempC), min:Math.round(+w.mintempC) };
+        }),
       };
       wxErr.src = 'wttr.in';
       saveWxCache();
@@ -3186,7 +3316,7 @@ function renderWeather(){
     : ['overcast','未获取'];
   document.getElementById('wxIc').innerHTML = wxSvg(cat, 26);
   document.getElementById('wxT').textContent = wxData ? wxData.temp + '°' : '--°';
-  document.getElementById('wxBot').textContent = wxData ? `${wxData.name} ${txt}` : '天气未获取';
+  document.getElementById('wxBot').textContent = wxData ? `${wxData.name} · ${txt}` : '天气未获取';
   document.getElementById('wxIc2').innerHTML = wxSvg(cat, 58);
   document.getElementById('wxT2').textContent = wxData ? wxData.temp + '°' : '--°';
   document.getElementById('wxD2').textContent = wxData ? `${wxData.name} · ${txt}` : '定位或天气服务不可用';
@@ -3196,6 +3326,22 @@ function renderWeather(){
     <div class="r"><span class="k">相对湿度</span><span class="v">${wxData.hum}%</span></div>
     <div class="r"><span class="k">风速</span><span class="v">${wxData.wind} km/h</span></div>
     <div class="r"><span class="k">日出 · 日落</span><span class="v">${wxData.sunrise || '--'} · ${wxData.sunset || '--'}</span></div>` : '';
+  const wl = (wxData && Array.isArray(wxData.weekly)) ? wxData.weekly : [];
+  const f7Label = (date, i) => {
+    if(i === 0) return '今天';
+    if(i === 1) return '明天';
+    const d = new Date(String(date) + 'T00:00:00');
+    return ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()] || '—';
+  };
+  document.getElementById('wx7Body').innerHTML = wl.length
+    ? wl.map((w, i) => {
+        const [cat, t] = (w.code !== null && w.code !== undefined)
+          ? (WX_CODES[w.code] || ['overcast','—'])
+          : [w.cat || 'overcast', w.txt || '—'];
+        const pop = (w.pop !== null && w.pop !== undefined && w.pop !== '') ? `<span class="pop">${w.pop}%</span>` : '';
+        return `<div class="w7-row" title="${String(w.date||'').replace(/"/g,'')}"><span class="day">${f7Label(w.date,i)}</span><span class="ic">${wxSvg(cat,20)}</span><span class="txt">${t}</span>${pop}<span class="temp">${w.max}° / ${w.min}°</span></div>`;
+      }).join('')
+    : '<div class="w7-empty">暂无七天预报数据，稍后自动刷新</div>';
   document.getElementById('wxSrc').textContent = wxData
     ? `数据来源 · ${wxErr.src} · 定位：${wxErr.loc} · 点击重试`
     : `天气不可用 · ${wxErr.src} · 点击重试` +
@@ -3204,21 +3350,91 @@ function renderWeather(){
         : '');
 }
 const wxPanel = document.getElementById('wxPanel');
+/* 七天预报抽屉高度始终与天气窗一致：天气窗 display:none 时量为 0，取自然高度兜底 */
+function wx7SyncHeight(){
+  let h = wxPanel.offsetHeight;
+  if(!h){ // 天气窗收起时临时量自然高度
+    const prev = wxPanel.style.cssText;
+    wxPanel.style.display = 'block'; wxPanel.style.visibility = 'hidden';
+    h = wxPanel.offsetHeight;
+    wxPanel.style.cssText = prev;
+  }
+  if(h > 0) wx7Drawer.style.height = h + 'px';
+}
 let wxTimer = null, wxPinned = false;
+/* 七天预报抽屉：把手悬停推出；右上角图钉=把抽屉与天气窗固定在一起（联动开合），状态持久化 */
+const wx7Drawer = document.getElementById('wx7Drawer');
+const wx7Handle = document.getElementById('wx7Handle');
+const wx7Pin = document.getElementById('wx7Pin');
+const WX7_KEY = 'atrium_wx7_fixed';
+let wx7Fixed = false, wx7Hover = false, wx7Timer = null;
+try{ wx7Fixed = localStorage.getItem(WX7_KEY) === '1'; }catch(e){}
+function wx7Sync(){
+  // 固定态：抽屉开合完全跟随天气窗；非固定态：仅悬停把手时推出
+  const shouldOpen = wx7Fixed ? wxPanel.classList.contains('open') : wx7Hover;
+  wx7Drawer.classList.toggle('open', shouldOpen);
+  if(shouldOpen) wx7SyncHeight();
+  wx7Pin.classList.toggle('fixed', wx7Fixed);
+  wx7Pin.title = wx7Fixed ? '已与天气窗固定 · 点击解除' : '点击与天气窗固定';
+}
+let wx7DelayTimer = null;
+function wxClose(){
+  wx7Hover = false; clearTimeout(wx7Timer); clearTimeout(wx7DelayTimer);
+  wxPinned = false; wxPanel.classList.remove('open');
+  wx7Sync(); // 固定态：抽屉立即跟随天气窗收起
+}
+function wxOpen(){
+  const wasOpen = wxPanel.classList.contains('open');
+  wxPanel.classList.add('open');
+  wx7SyncHeight();
+  if(wx7Fixed){
+    wx7Pin.classList.add('fixed'); wx7Pin.title = '已与天气窗固定 · 点击解除';
+    // 固定态：天气窗先弹出（pop .36s），随后抽屉从窗内向右滑出（每次从关闭态打开都重播）
+    // 若天气窗与预报抽屉当前都已显示（重复悬停任务栏天气），保持原状，不重播滑出动画
+    if(wasOpen && wx7Drawer.classList.contains('open')) return;
+    wx7Drawer.classList.remove('open');
+    clearTimeout(wx7DelayTimer);
+    wx7DelayTimer = setTimeout(() => { wx7Drawer.classList.add('open'); }, 200);
+  } else {
+    wx7Sync();
+  }
+}
+[wx7Handle, wx7Drawer].forEach(el => {
+  el.addEventListener('mouseenter', () => { clearTimeout(wx7Timer); wx7Hover = true; wx7Sync(); });
+  el.addEventListener('mouseleave', () => {
+    clearTimeout(wx7Timer);
+    wx7Timer = setTimeout(() => { wx7Hover = false; wx7Sync(); }, 220);
+  });
+});
+/* 固定联动切换：图钉与竖线把手共用同一逻辑 */
+function wx7TogglePin(e){
+  if(e) e.stopPropagation();
+  wx7Fixed = !wx7Fixed;
+  wx7Hover = false; clearTimeout(wx7Timer); clearTimeout(wx7DelayTimer);
+  try{ wx7Fixed ? localStorage.setItem(WX7_KEY, '1') : localStorage.removeItem(WX7_KEY); }catch(err){}
+  wx7Sync();
+  toast(wx7Fixed ? '七天预报已与天气窗固定，将一起开合并记住' : '已解除固定，恢复悬停展开');
+}
+wx7Pin.addEventListener('click', wx7TogglePin);
+wx7Handle.addEventListener('click', wx7TogglePin);
+wx7Sync();
+/* 天气窗高度一变（开窗/数据刷新/字体缩放）就同步给抽屉 */
+if(window.ResizeObserver){ try{ new ResizeObserver(() => wx7SyncHeight()).observe(wxPanel); }catch(e){} }
+addEventListener('resize', wx7SyncHeight);
 document.getElementById('weatherBtn').addEventListener('mouseenter', () => {
-  wxTimer = setTimeout(() => wxPanel.classList.add('open'), 200);
+  wxTimer = setTimeout(wxOpen, 200);
 });
 document.getElementById('weatherBtn').addEventListener('mouseleave', () => {
   clearTimeout(wxTimer);
-  setTimeout(() => { if(!wxPinned && !wxPanel.matches(':hover')) wxPanel.classList.remove('open'); }, 250);
+  setTimeout(() => { if(!wxPinned && !wxPanel.matches(':hover') && !wx7Drawer.matches(':hover')) wxClose(); }, 250);
 });
 document.getElementById('weatherBtn').addEventListener('click', e => {
   e.stopPropagation();
   wxPinned = !wxPinned;
-  wxPanel.classList.toggle('open', wxPinned);
+  if(wxPinned) wxOpen(); else wxClose();
 });
 wxPanel.addEventListener('mouseleave', () => {
-  setTimeout(() => { if(!wxPinned && !document.getElementById('weatherBtn').matches(':hover')) wxPanel.classList.remove('open'); }, 250);
+  setTimeout(() => { if(!wxPinned && !document.getElementById('weatherBtn').matches(':hover') && !wx7Drawer.matches(':hover')) wxClose(); }, 250);
 });
 wxPanel.addEventListener('mouseenter', () => clearTimeout(wxTimer));
 /* 天气手动重试 */
@@ -3227,7 +3443,7 @@ document.getElementById('wxSrc').addEventListener('click', e => {
   toast('正在重新获取天气…');
   fetchWeather();
 });
-addEventListener('click', e => { if(wxPinned && !wxPanel.contains(e.target) && !document.getElementById('weatherBtn').contains(e.target)){ wxPinned=false; wxPanel.classList.remove('open'); }});
+addEventListener('click', e => { if(wxPinned && !wxPanel.contains(e.target) && !wx7Drawer.contains(e.target) && !document.getElementById('weatherBtn').contains(e.target)) wxClose(); });
 
 /* ================= 日出日落面板（悬停时钟显示） ================= */
 const sunPanel = document.getElementById('sunPanel');
@@ -3672,6 +3888,177 @@ function tickClock(){
   document.getElementById('clkD').textContent = `${d.getMonth()+1}月${d.getDate()}日 周${'日一二三四五六'[d.getDay()]}`;
 }
 setInterval(tickClock, 1000); tickClock();
+
+/* ---------- 时间日期悬浮窗：从任务栏时钟拖离后渐渐实体化 ---------- */
+const dateFloat = document.getElementById('dateFloat');
+const dfTime = document.getElementById('dfTime');
+const dfDate = document.getElementById('dfDate');
+let clkDrag = null, dfDrag = null;
+const DF_KEY = 'atrium_date_float'; // 记住悬浮窗的显示状态与摆放位置
+function dfRender(){
+  const d = new Date();
+  dfTime.textContent = pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+  dfDate.textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 周${'日一二三四五六'[d.getDay()]}`;
+}
+function dfPlace(x, y){
+  const w = dateFloat.offsetWidth, h = dateFloat.offsetHeight;
+  const px = Math.min(Math.max(8, x - 20), Math.max(8, innerWidth - w - 8));
+  const py = Math.min(Math.max(8, y - 24), Math.max(8, innerHeight - h - 8));
+  dateFloat.style.left = px + 'px'; dateFloat.style.top = py + 'px';
+}
+function dfShow(x, y, srcRect){
+  dfRender();
+  // 单例：已打开则只挪位置，不重复播放大动画
+  const already = dateFloat.classList.contains('show');
+  if(!already){
+    dateFloat.classList.remove('dragging','grow');
+    dateFloat.style.animation = ''; // 恢复 CSS 放大动画（刷新恢复时被置为 none）
+    dateFloat.classList.add('show');
+  }
+  dfPlace(x, y);
+  if(!already){
+    // 起点 = 鼠标正拖着的时钟：以指针位置为中心、时钟宽度为起点尺寸，等比放大成悬浮窗
+    const fr = dateFloat.getBoundingClientRect();
+    const s = srcRect ? Math.max(.26, Math.min(1, srcRect.width / fr.width)) : .4;
+    const c0x = srcRect ? srcRect.cx : fr.left + fr.width/2;
+    const c0y = srcRect ? srcRect.cy : fr.top + fr.height/2;
+    dateFloat.style.setProperty('--df-s', s);
+    dateFloat.style.setProperty('--df-tx', (c0x - (fr.left + fr.width/2)) + 'px');
+    dateFloat.style.setProperty('--df-ty', (c0y - (fr.top + fr.height/2)) + 'px');
+    void dateFloat.offsetWidth;
+    dateFloat.classList.add('grow');
+  }
+  dfSave();
+}
+// 持久化：打开状态与位置一起存；关闭时整条清除
+function dfSave(){
+  try{
+    if(dateFloat.classList.contains('show')){
+      localStorage.setItem(DF_KEY, JSON.stringify({
+        open: true,
+        left: parseFloat(dateFloat.style.left) || 8,
+        top: parseFloat(dateFloat.style.top) || 8
+      }));
+    }else{
+      localStorage.removeItem(DF_KEY);
+    }
+  }catch(err){}
+}
+// 刷新恢复：直接显示在记忆位置（不播实体化动画），位置按当前视口夹紧
+function dfRestore(){
+  let s = null;
+  try{ s = JSON.parse(localStorage.getItem(DF_KEY) || 'null'); }catch(err){}
+  if(!s || !s.open) return;
+  dfRender();
+  const w = dateFloat.offsetWidth, h = dateFloat.offsetHeight;
+  const x = Math.min(Math.max(8, Number(s.left) || 8), Math.max(8, innerWidth - w - 8));
+  const y = Math.min(Math.max(8, Number(s.top) || 8), Math.max(8, innerHeight - h - 8));
+  dateFloat.style.left = x + 'px'; dateFloat.style.top = y + 'px';
+  dateFloat.style.animation = 'none'; // 刷新恢复直接就位，不播实体化动画
+  dateFloat.classList.add('show');
+}
+setInterval(() => { if(dateFloat.classList.contains('show')) dfRender(); }, 1000);
+
+// 拖动任务栏时钟：跟随指针，离开任务栏矩形即实体化悬浮窗
+clockBtn.addEventListener('pointerdown', e => {
+  if(e.pointerType === 'mouse' && e.button !== 0) return;
+  // 悬浮窗已存在：完全不响应任务栏时钟的拖动（不 morph、不新建、不重播、不挪位）
+  if(dateFloat.classList.contains('show')) return;
+  clearTimeout(sunTimer); sunPanel.classList.remove('open');
+  clkDrag = { sx:e.clientX, sy:e.clientY, moved:false, phase:'clock', morph:0, morphT0:0, morphRAF:0 };
+  try{ clockBtn.setPointerCapture(e.pointerId); }catch(err){}
+});
+// 在任务栏内拖动时，轮廓随时间从时钟逐步 morph 到接近悬浮窗（0→1，约 480ms）
+function clkMorphTick(){
+  if(!clkDrag || clkDrag.phase !== 'clock') return;
+  if(!clkDrag.morphT0) clkDrag.morphT0 = performance.now();
+  const t = Math.min(1, (performance.now() - clkDrag.morphT0) / 480);
+  clkDrag.morph = t;
+  clockBtn.style.setProperty('--m', t.toFixed(3));
+  if(t < 1) clkDrag.morphRAF = requestAnimationFrame(clkMorphTick);
+}
+function clkMorphStop(){
+  if(clkDrag && clkDrag.morphRAF) cancelAnimationFrame(clkDrag.morphRAF);
+}
+clockBtn.addEventListener('pointermove', e => {
+  if(!clkDrag) return;
+  // 悬浮窗已接管：鼠标未松开期间持续跟随（指针捕获仍在 clockBtn 上）
+  if(clkDrag.phase === 'float'){
+    if(dfDrag){
+      const w = dateFloat.offsetWidth, h = dateFloat.offsetHeight;
+      const x = Math.min(Math.max(8, e.clientX - dfDrag.dx), Math.max(8, innerWidth - w - 8));
+      const y = Math.min(Math.max(8, e.clientY - dfDrag.dy), Math.max(8, innerHeight - h - 8));
+      dateFloat.style.left = x + 'px'; dateFloat.style.top = y + 'px';
+    }
+    return;
+  }
+  const dx = e.clientX - clkDrag.sx, dy = e.clientY - clkDrag.sy;
+  if(!clkDrag.moved && Math.abs(dx) + Math.abs(dy) > 6) clkDrag.moved = true;
+  if(!clkDrag.moved) return;
+  const br = document.getElementById('bar').getBoundingClientRect();
+  const inside = e.clientX >= br.left && e.clientX <= br.right && e.clientY >= br.top && e.clientY <= br.bottom;
+  if(!inside){
+    // 放大起点 = 指针当前所在处；时钟此刻已被 morph 放大，取其实际宽度使放大无缝衔接
+    const cw = clockBtn.getBoundingClientRect().width;
+    dfShow(e.clientX, e.clientY, { cx: e.clientX, cy: e.clientY, width: cw });
+    // 记录鼠标相对悬浮窗左上角的偏移，放大后继续跟手、不脱离控制
+    dfDrag = { dx: e.clientX - parseFloat(dateFloat.style.left), dy: e.clientY - parseFloat(dateFloat.style.top) };
+    clkDrag.phase = 'float';
+    dateFloat.classList.add('dragging');
+    clkMorphStop();
+    clkResetClock();
+    return;
+  }
+  clockBtn.classList.add('drag-src');
+  clockBtn.style.setProperty('--dx', dx + 'px');
+  clockBtn.style.setProperty('--dy', dy + 'px');
+  if(!clkDrag.morphRAF) clkDrag.morphRAF = requestAnimationFrame(clkMorphTick);
+});
+// 复位时钟到任务栏原貌（清 drag-src 与所有 morph 变量）
+function clkResetClock(){
+  clockBtn.classList.remove('drag-src');
+  clockBtn.style.transform = '';
+  ['--m','--dx','--dy'].forEach(v => clockBtn.style.removeProperty(v));
+}
+function clkDragEnd(){
+  if(clkDrag && clkDrag.phase === 'float'){
+    dfDrag = null;
+    dateFloat.classList.remove('dragging');
+    dfSave();
+  }
+  clkMorphStop();
+  if(clkDrag) clkDrag.morphRAF = 0;
+  clkDrag = null;
+  clkResetClock();
+}
+clockBtn.addEventListener('pointerup', clkDragEnd);
+clockBtn.addEventListener('pointercancel', clkDragEnd);
+
+// 悬浮窗自身拖动摆放 + 关闭
+dateFloat.addEventListener('pointerdown', e => {
+  if(e.pointerType === 'mouse' && e.button !== 0) return;
+  if(e.target.closest('.df-close')) return;
+  const r = dateFloat.getBoundingClientRect();
+  dfDrag = { dx:e.clientX - r.left, dy:e.clientY - r.top };
+  try{ dateFloat.setPointerCapture(e.pointerId); }catch(err){}
+});
+dateFloat.addEventListener('pointermove', e => {
+  if(!dfDrag) return;
+  dateFloat.classList.add('dragging');
+  const w = dateFloat.offsetWidth, h = dateFloat.offsetHeight;
+  const x = Math.min(Math.max(8, e.clientX - dfDrag.dx), Math.max(8, innerWidth - w - 8));
+  const y = Math.min(Math.max(8, e.clientY - dfDrag.dy), Math.max(8, innerHeight - h - 8));
+  dateFloat.style.left = x + 'px'; dateFloat.style.top = y + 'px';
+});
+function dfDragEnd(){ dfDrag = null; dateFloat.classList.remove('dragging'); dfSave(); }
+dateFloat.addEventListener('pointerup', dfDragEnd);
+dateFloat.addEventListener('pointercancel', dfDragEnd);
+document.getElementById('dfClose').addEventListener('click', e => {
+  e.stopPropagation();
+  // 唯一关闭入口：移除显示并清除记忆（刷新后不再恢复）
+  dateFloat.classList.remove('show','dragging'); dfDrag = null; dfSave();
+});
+dfRestore(); // 页面载入时恢复悬浮窗与摆放位置
 
 /* ---------- 托盘图标：音量 / 网络 ---------- */
 const trayVol = document.getElementById('trayVol');
