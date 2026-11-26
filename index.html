@@ -3142,13 +3142,8 @@ document.getElementById('favFileInput').addEventListener('change', e => {
   rd.onload = () => {
     const items = parseBookmarks(String(rd.result));
     if(!items.length){ toast('没有解析到网址：请选择浏览器收藏夹文件（Bookmarks 或 bookmarks.html）'); return; }
-    let g = S.groups.find(x => x.name === '我的收藏');
-    if(g){
-      g.links = []; // 重新导入：先清空旧的收藏夹内容
-    }else{
-      g = {id:uid(), name:'我的收藏', links:[]};
-      S.groups.unshift(g); // 所有分组最前面
-    }
+    // 完全以导入为准：不再保留默认/原有分组，整包替换成导入的收藏
+    const g = {id:uid(), name:'我的收藏', links:[]};
     const have = new Set();
     let added = 0;
     items.forEach(x => {
@@ -3157,9 +3152,12 @@ document.getElementById('favFileInput').addEventListener('change', e => {
       g.links.push({id:uid(), name:x.name.slice(0, 40), url:x.url});
       added++;
     });
+    S.groups = [g];
+    S.presetApplied = PRESET_ID;
+    try{ localStorage.setItem(RESET_KEY,'1'); localStorage.setItem('atrium-nav-preset-done','1'); }catch(e){}
     renderGroupPanel(); save(); renderBarIcons();
     grpPinned = true; clearTimeout(closeTimer);
-    toast(`收藏夹导入完成：${g.name} 分组共 ${added} 个网址（已放到最前面）`);
+    toast(`收藏夹导入完成：共 ${added} 个网址，已完全替换原有分组`);
   };
   rd.readAsText(f);
 });
@@ -3978,7 +3976,7 @@ function importConfig(file){
       const j = JSON.parse(rd.result);
       if(!j || j.app !== 'atrium-nav' || !Array.isArray(j.groups)) throw new Error('格式不符');
       const cnt = j.groups.reduce((n,g) => n + (g.links?.length||0), 0);
-      if(!confirm(`导入这份配置？\n\n分组 ${j.groups.length} 个 · 网址 ${cnt} 个 · 自定义引擎 ${(j.engines||[]).length} 个\n\n将覆盖当前全部分组和设置。`)) return;
+      if(!confirm(`导入这份配置？\n\n分组 ${j.groups.length} 个 · 网址 ${cnt} 个 · 自定义引擎 ${(j.engines||[]).length} 个\n\n将完全覆盖当前全部分组和设置，不保留默认网址。`)) return;
       S = normalize({
         engineId:j.engineId, engines:j.engines||[],
         groups:j.groups, iconCount:j.iconCount||8,
@@ -3991,7 +3989,7 @@ function importConfig(file){
         trayMute:!!j.trayMute, showVol:j.showVol !== false, showNet:j.showNet !== false, showVisits:j.showVisits === true, dragSort:j.dragSort === true, rbScroll:j.rbScroll !== false,
         glassLevel:(typeof j.glassLevel === 'number' ? Math.min(100, Math.max(-100, j.glassLevel)) : (j.glassMode === 'frosted' ? 100 : 0)),
         hotBoards:(Array.isArray(j.hotBoards) && j.hotBoards.length) ? j.hotBoards.filter(k=>HOT_BOARDS[k]).slice(0,3) : ['baidu'],
-        quick:Array.isArray(j.quick) ? j.quick : [{name:'DeepSeek', url:'https://chat.deepseek.com'}],
+        quick:Array.isArray(j.quick) ? j.quick : [], // 完全以导入为准：旧配置没有直达网址就不补默认 DeepSeek
         countOn:j.countOn === true, count1:(typeof j.count1 === 'number' && isFinite(j.count1) && j.count1 >= 0) ? j.count1 : 300,
         count2:(typeof j.count2 === 'number' && isFinite(j.count2) && j.count2 >= 0) ? j.count2 : 300, countPos:j.countPos||null, countBig:j.countBig === true, countNotify:j.countNotify === true,
         multiOn:j.multiOn === true, multiBig:j.multiBig === true, multiNotify:j.multiNotify === true,
@@ -4000,7 +3998,8 @@ function importConfig(file){
         presetApplied:(typeof j.presetApplied === 'string' && j.presetApplied) ? j.presetApplied : PRESET_ID, // 旧版备份无此字段：视为已应用过预设，防止下次打开被迁移覆盖
       });
       memoryWall = null;
-      try{ localStorage.setItem('atrium-nav-preset-done','1'); }catch(e2){} // 双保险：一次性标记，杜绝预设迁移再次触发
+      // 双保险：导入即视为已完成首次重置/预设迁移，刷新后不会再把默认网址灌回来
+      try{ localStorage.setItem(RESET_KEY,'1'); localStorage.setItem('atrium-nav-preset-done','1'); }catch(e2){}
       save();
       // 全量刷新
       applyZoom(); applyWallpaper(); renderEngineBtn(); renderEngineMenu();
