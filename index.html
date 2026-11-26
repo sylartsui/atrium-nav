@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v2.4.1</title>
+<title>Atrium · 导航 v2.5.0</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -830,6 +830,36 @@ body.ink-dark #wxPanel .wx7-handle:hover .ln{background:rgba(17,19,23,.85)}
   padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;color:var(--ink-main);
   display:none;animation:toastin .3s var(--ease-pop);
 }
+/* ===== v2.5.0 强制清洗密码弹窗（置顶、无法点击背景关闭） ===== */
+#cleanMask{
+  position:fixed;inset:0;z-index:1000;display:none;
+  align-items:center;justify-content:center;background:rgba(0,0,0,.42);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+}
+#cleanMask.open{display:flex;animation:fadein .25s ease}
+#cleanBox{
+  width:min(430px,calc(100vw - 32px));padding:26px 26px 22px;text-align:center;
+  border-radius:24px;color:var(--ink-main);box-shadow:0 24px 70px rgba(0,0,0,.44);
+}
+#cleanBox .cb-icon{font-size:30px;line-height:1;margin-bottom:8px}
+#cleanBox .cb-title{font-size:19px;font-weight:700;margin-bottom:10px}
+#cleanBox .cb-desc{font-size:13px;line-height:1.7;color:var(--ink-sub);font-weight:500;margin-bottom:18px}
+#cleanBox .cb-sec{color:#FF9F0A;font-size:16px;font-weight:800;padding:0 2px}
+#cleanBox .cb-row{display:flex;gap:8px}
+#cleanBox .cb-row input{
+  flex:1;min-width:0;height:42px;padding:0 14px;border-radius:14px;font-size:16px;letter-spacing:2px;
+  border:1px solid var(--glass-bd);background:rgba(127,127,127,.14);color:var(--ink-main);outline:none;
+}
+#cleanBox .cb-row input:focus{border-color:var(--accent)}
+#cleanBox .cb-row input::placeholder{color:var(--ink-weak);letter-spacing:0;font-size:13px}
+#cleanBox .cb-row button{
+  height:42px;padding:0 20px;border:none;border-radius:14px;background:var(--accent);color:#fff;
+  font-size:14px;font-weight:700;cursor:pointer;transition:transform .15s var(--ease-pop);
+}
+#cleanBox .cb-row button:hover{transform:scale(1.04)}
+#cleanBox .cb-row button:active{transform:scale(.97)}
+#cleanBox .cb-msg{min-height:18px;margin-top:10px;font-size:12px;font-weight:600;color:#FF453A}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
 @media (max-width:760px){
   #weatherBtn .wx-c{display:none}
   #searchWrap{top:12%}
@@ -1580,6 +1610,21 @@ body.ink-dark #wxPanel .wx7-handle:hover .ln{background:rgba(17,19,23,.85)}
 <input type="file" id="cfgInput" accept=".json,application/json">
 
 <div id="toast" class="glass text-halo"></div>
+
+<!-- v2.5.0 强制清洗密码弹窗 -->
+<div id="cleanMask">
+  <div id="cleanBox" class="glass" role="dialog" aria-modal="true" aria-label="网址清洗确认">
+    <div class="cb-icon">🔒</div>
+    <div class="cb-title">发现发布者预留网址</div>
+    <div class="cb-desc">检测到本地存有与发布者预设相同的网址。若为本人使用，请输入密码保留；<b id="cdSec" class="cb-sec">5</b> 秒内无有效密码将自动清除这些网址。</div>
+    <div class="cb-row">
+      <input id="cdPwd" type="password" inputmode="numeric" maxlength="12" placeholder="输入密码" autocomplete="off">
+      <button id="cdOk">确认</button>
+    </div>
+    <div id="cdMsg" class="cb-msg"></div>
+  </div>
+</div>
+
 <input type="file" id="iconInput" accept="image/*,.ico" style="display:none">
 <div id="iconPop" class="glass"></div>
 <div id="movePop" class="glass"></div>
@@ -1606,7 +1651,7 @@ body.ink-dark #wxPanel .wx7-handle:hover .ln{background:rgba(17,19,23,.85)}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '2.4.1';
+const APP_VER = '2.5.0';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -1623,90 +1668,61 @@ const PRESET_ENGINES = [
   {id:'zhihu',  name:'知乎',   url:'https://www.zhihu.com/search?q=%s',    c:'#0084FF'},
   {id:'github', name:'GitHub', url:'https://github.com/search?q=%s',       c:'#24292F'},
 ];
-/* 百度「我的常用」预设分组（v1.1 导入，# 表示待补内网地址） */
+/* 中性基础网址起步包（v1.5 原始起步包，全部为公开网址，不含任何个人收藏 / 内网地址） */
 const PRESET_DATA = [
-  ['百福业务', [
-    ['百福新系统','http://intranet.example.test/businessManagement/businessRegister'],
-    ['百福内测系统','#'],
-    ['百福查询后台','#'],
-    ['百福新查询','http://intranet2.example.test:8008'],
-    ['网站后台','http://public-server.example.test/cms/'],
-    ['百福网站','https://company.example.com'],
-    ['百福报关查询','#'],
-    ['百福报关归档','#'],
-    ['百福航班状态','#'],
-    ['百福照片系统','#'],
-    ['EES客户网站','#'],
-    ['AEO CRE','#'],
+  ['常用推荐', [
+    ['百度', 'https://www.baidu.com'],
+    ['GitHub', 'https://github.com'],
+    ['知乎', 'https://www.zhihu.com'],
+    ['哔哩哔哩', 'https://www.bilibili.com'],
+    ['DeepSeek', 'https://chat.deepseek.com'],
+    ['淘宝', 'https://www.taobao.com'],
+    ['京东', 'https://www.jd.com'],
+    ['微博', 'https://weibo.com'],
+    ['小红书', 'https://www.xiaohongshu.com'],
+    ['豆瓣', 'https://www.douban.com'],
+    ['网易云音乐', 'https://music.163.com'],
+    ['腾讯视频', 'https://v.qq.com'],
+    ['抖音', 'https://www.douyin.com'],
   ]],
-  ['监控仓储', [
-    ['梅陇NVR','#'],['室外监控','#'],['1F监控','#'],['2F监控','#'],['3F监控','#'],
-    ['新云监控','#'],['新云贩急','#'],['新GPS','#'],['新云报警系统','#'],
-    ['华飞1号库1','#'],['华飞1号库2','#'],['华飞1号库3','#'],['华飞2号库2','#'],
-    ['1001监控2号','#'],['1001监控1号','#'],
-  ]],
-  ['网络设备', [
-    ['TP-LINK商用云','#'],['梅陇主路由','#'],['梅陇主WiFi','#'],['梅陇2FWiFi','#'],
-    ['梅陇3F备…','#'],['梅陇备用W…','#'],['5号WiFi','#'],['5号主路由','#'],['5号打印机','#'],
-    ['NAS EX2','#'],['NAS Duo','#'],['vpn管理','#'],
-    ['OpenWrt','http://router.example.test'],['oPenWrt V…','https://firmware-selector.openwrt.org'],
-    ['Home Assistant','http://homeassistant.local:8123'],['home-assistant官网','https://www.home-assistant.io'],
-    ['dashy.to','https://dashy.to'],['git hacs 历史','https://github.com/hacs'],['Kodi','https://kodi.tv'],
-    ['贝锐蒲公英','https://pgy.oray.com'],['贝锐花生壳','https://hsk.oray.com'],
-    ['DS920','http://nas.example.test:5000'],['DS920 Flo…','http://nas.example.test/photo'],['WD云','https://os5.mycloud.com'],
-  ]],
-  ['查询工具', [
-    ['HS查询','https://www.hsbianma.com'],['三字码查询','https://www.variflight.com'],
-    ['经纬度获取','https://api.map.baidu.com/lbsapi/getpoint/index.html'],
-    ['二维码制作','https://cli.im'],['MOBI转换','https://www.convertio.co/zh/'],
-    ['百度翻译','https://fanyi.baidu.com'],['网络测速','https://www.speedtest.cn'],
-    ['手柄测试','https://gamepad-tester.com'],['函数公式图像','https://www.desmos.com/calculator?lang=zh-CN'],
-    ['信用公示平台','https://www.gsxt.gov.cn'],['DeepSeek','https://chat.deepseek.com'],['即梦AI','https://jimeng.jianying.com'],
-  ]],
-  ['天气地图', [
-    ['气象云图','http://www.nmc.cn'],['天气','https://www.weather.com.cn'],
-    ['google地图','https://maps.google.com'],['阿里云地图','https://www.amap.com'],
-  ]],
-  ['云盘邮箱', [
-    ['百度网盘','https://pan.baidu.com'],['QQ邮箱','https://mail.qq.com'],
-    ['Hotmail','https://outlook.live.com/owa/'],['icloud','https://www.icloud.com'],
-    ['Synology ID','https://account.synology.com'],
-  ]],
-  ['数码购物', [
-    ['苹果官网','https://www.apple.com.cn'],['苹果香港官网','https://www.apple.com/hk/'],
-    ['苹果系统状态','https://www.apple.com.cn/support/systemstatus/'],['小米官网','https://www.mi.com'],
-    ['京东商城','https://www.jd.com'],['淘宝网','https://www.taobao.com'],['亚马逊','https://www.amazon.com'],
-    ['NIKE','https://www.nike.com.cn'],['宜家','https://www.ikea.cn'],['宜家厨房设计','https://kitchenplanner.ikea.cn'],
-    ['慢慢买','https://www.manmanbuy.com'],['历史价格','https://www.gwdang.com'],
-    ['StartMyCar','https://www.startmycar.com'],['装机网站','https://www.lotpc.com'],
-    ['汽车之家','https://www.autohome.com.cn'],['爱卡汽车网','https://www.xcar.com.cn'],
-    ['太平洋汽车网','https://www.pcauto.com.cn'],['太平洋电脑网','https://www.pconline.com.cn'],
-    ['Creative Cloud','https://www.adobe.com/creativecloud.html'],
-  ]],
-  ['影视资源', [
-    ['电影天堂','https://www.dygod.net'],['高清网','#'],['歌曲海','#'],['电子书下载','https://www.jiumodiary.com'],
-    ['迅雷离线','https://lixian.vip.xunlei.com'],['土豆网','https://www.tudou.com'],
-    ['1337X','https://1337x.to'],['1337x2','https://1337x.st'],['RARBG','https://rargb.to'],['RARBG mi…','https://rarbgmirrored.org'],
-    ['海盗湾','https://thepiratebay.org'],['yts.mx','https://yts.mx'],['EZTV','https://eztv.re'],['TGX','https://torrentgalaxy.to'],
-    ['bt-tt','#'],['动漫BT下载','#'],['人人影视','https://www.yyets.com'],['漫喵动漫','#'],['OP Fans','#'],
-    ['subhd.tv','https://subhd.tv'],['SUBHDcc','https://subhd.cc'],['SUBHDme','https://subhd.me'],
-    ['字幕库','https://www.zimuku.org'],['中文字幕网','#'],['小调网','#'],
-  ]],
-  ['社区兴趣', [
-    ['微博','https://weibo.com'],['虎扑社区','https://bbs.hupu.com'],['篱笆网','https://www.liba.com'],
-    ['爱摄影','https://tuchong.com'],['爱稀奇','https://www.ixiqi.com'],['FlightClub','https://www.flightclub.com'],
-    ['东立','https://www.tongli.com.tw'],['海贼王吧','https://tieba.baidu.com/f?kw=%E6%B5%B7%E8%B4%BC%E7%8E%8B&ie=utf-8'],
-    ['DLL库','https://cn.dll-files.com'],['软件下载','https://www.ghxi.com'],['破解','#'],
-    ['西贴','#'],['大理全球管理','#'],['Ecip Games','#'],
+  ['实用工具', [
+    ['中国天气', 'https://www.weather.com.cn'],
+    ['高德地图', 'https://www.amap.com'],
+    ['12306', 'https://www.12306.cn'],
+    ['菜鸟教程', 'https://www.runoob.com'],
+    ['百度翻译', 'https://fanyi.baidu.com'],
+    ['网络测速', 'https://www.speedtest.cn'],
   ]],
 ];
 const DEFAULT_GROUPS = PRESET_DATA.map((g, i) => ({
   id:'pg'+(i+1), name:g[0],
   links:g[1].map((l, j) => ({id:'pg'+(i+1)+'_'+(j+1), name:l[0], url:l[1]})),
 }));
+/* ================= v2.5.0 强制清洗：清除本机里残留的发布者收藏 =================
+   背景：v2.4.1 前源码内置过发布者的百度「我的常用」130 条（含内网地址），老访客浏览器
+   localStorage 里可能仍留着它们。这些网址的「名称+地址」指纹预先算好内嵌在下方（不含明文）。
+   规则：仅 v2.5.0 首次打开且检测到命中项时，弹出密码框 + 5 秒倒计时；
+         - 输对密码 5617（哈希比对）→ 本机永久豁免（写标记 CLEAN_DONE_KEY='kept'），不删任何数据；
+         - 5 秒内无密码 / 密码错 → 删除所有命中链接（倒序删，避免索引错位），空分组一并清理；
+         两种结局都写 CLEAN_DONE_KEY 标记，之后永不再触发。 */
+const CLEAN_DONE_KEY = 'atrium-nav-cleanup-250-done';
+const CLEAN_PWD_HASH = '1ixupuy'; // = cleanHash('5617')，明文密码不落源码
+const CLEAN_HASHES = new Set('1n2ww6u yji04l 1qb0c6u dogrkx 1bsp991 a2thin 8x1ggs qbsfkw 1ap0er7 1qx1hjb 1effjjs pip39l mnweck 17w20qq 61lkl7 1rz6ij0 txlfh5 1l5sfkv hrhkt plgcao 1cv7gqm 14ci1vg 1oon2q5 6jup4i susyiy 1u4gyjt 9190te 1br26zs xbvvvb 10rbvw2 dcojyt 2d8d1g 1md3b26 5m2e81 s9i3av xz7jq5 1aouak5 17n0c5w 1dnfqpp 1feuizj zksve9 q8i1wk 1l2yjcg psimt8 1j7765h 1hq70sa 18ch1a2 1888qv4 1nvt8q 18edfqx 17d4kef 6g2m43 kh87as 1fqixdx k18oev 1a7894b 1kownlx 10u1shw jjm7hn j5l3c3 wqms7a 1gwpyt3 mgq0mx fevvof 13iigoa vwjfly 1b4kye5 664t2k 18cctq9 auzbcv 1qva4g8 1t9u84l 2b4zfv jvg169 1pc96ho cclww5 of22zi 19fx1na 1b9p9t2 bi1m21 1vsi26m 1on8y9d xmw4n4 1q712s3 7uih28 1j606j9 m95m65 1xz413v vw0ryj 1nnhrig z1j4xj 6qczs6 40twk 198dubh 2l9936 1cnwh62 qx6yo9 1ho1qc9 emxr1z e6o0o3 yox70k dhae98 up5sey 6b5ur1 9vuwxy 1n0pwvb ehbhi7 cewwp1 ntx7qt gdcjel 19m9xyc 1j999cw 13ixs5o 1sma191 1os7bd5 7qqp8f 1wzn2ir ymwtol p13y36 p0mraz vb4j5g 1kmxst4 1xmg63h li3tpz wst7td oov8ur 8qs789 xb3dor gaqt73 1fvku4u'.split(' '));
+/* 追加的纯地址清洗目标（仅给地址、无名称）：花生壳穿透地址 tunnel.example.test:26911。
+   收录 http/https × 带/不带尾斜杠 4 种写法的地址指纹，命中任一即删；明文不落源码。 */
+const CLEAN_URL_HASHES = new Set('l1fldc 14096yn 5tn181 1gq9490'.split(' '));
+function cleanHash(str){
+  let h = 0x811c9dc5;
+  for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h>>>0).toString(36);
+}
+function cleanKeyOf(name,url){ return cleanHash(String(name) + '\u0000' + String(url)); }
 let lastSavedRaw = null; // 启动时读到的原始数据字符串；save() 据此把上一版留底到 -prev，防覆盖型丢失（须在 loadState 调用前声明）
 let S = loadState();
-/* v1.1 预设迁移：首次加载时用百度「我的常用」分组替换旧分组，旧分组自动备份到 localStorage */
+let presetMigratedThisLoad = false; // 本次加载是否刚跑过预设迁移（新访客/全新初始化标志，供 v2.5.0 清洗跳过）
+/* 预设迁移：首次加载时用中性基础网址起步包初始化分组，旧分组自动备份到 localStorage。
+   ID 沿用历史值 baidu-changyong-20261110 不变——老用户配置里 presetApplied 存的就是它，
+   改 ID 会让老配置在新环境下误判为「未迁移」，叠加 preset-done 被清时可能覆盖用户自己的分组。 */
 const PRESET_ID = 'baidu-changyong-20261110';
 /* 一次性标记 atrium-nav-preset-done：预设迁移只允许发生一次。曾经发生过的事故：
    导出的配置不含 presetApplied → 导入后为空 → 下次打开迁移重新触发 → 分组被起步包覆盖。
@@ -1715,8 +1731,9 @@ if(S.presetApplied !== PRESET_ID && !localStorage.getItem('atrium-nav-preset-don
   try{ localStorage.setItem('atrium-nav-groups-backup', JSON.stringify({date:new Date().toISOString(), groups:S.groups})); }catch(e){}
   S.groups = JSON.parse(JSON.stringify(DEFAULT_GROUPS));
   S.presetApplied = PRESET_ID;
+  presetMigratedThisLoad = true;
   save();
-  setTimeout(() => toast('已导入百度「我的常用」网址，原分组已自动备份'), 600);
+  setTimeout(() => toast('已载入基础网址起步包，原分组已自动备份'), 600);
 }
 try{ localStorage.setItem('atrium-nav-preset-done','1'); }catch(e){}
 function loadState(){
@@ -2007,6 +2024,77 @@ function toast(msg){
   t.textContent = msg; t.style.display = 'block';
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.style.display = 'none', 2200);
+}
+
+/* ================= v2.5.0 强制清洗流程 ================= */
+let cleanTimer = null, cleanHits = [], cleanDone = false;
+function cleanMark(result){
+  try{ localStorage.setItem(CLEAN_DONE_KEY, result); }catch(e){}
+  cleanDone = true;
+}
+function cleanFindHits(){
+  const hits = [];
+  (S.groups || []).forEach((g, gi) => {
+    (g.links || []).forEach((l, li) => {
+      if(CLEAN_HASHES.has(cleanKeyOf(l.name, l.url)) || CLEAN_URL_HASHES.has(cleanHash(String(l.url || '')))) hits.push({gi, li});
+    });
+  });
+  return hits;
+}
+function cleanExecute(){
+  if(cleanDone) return;
+  clearInterval(cleanTimer);
+  document.getElementById('cleanMask').classList.remove('open');
+  // 倒序删除，避免索引前移错位
+  const byGroup = {};
+  cleanHits.forEach(h => { (byGroup[h.gi] = byGroup[h.gi] || []).push(h.li); });
+  Object.keys(byGroup).forEach(gi => {
+    const idxs = byGroup[gi].slice().sort((a,b) => b - a);
+    const links = S.groups[gi].links;
+    idxs.forEach(li => links.splice(li, 1));
+  });
+  const removed = cleanHits.length;
+  // 清理变空的分组
+  S.groups = (S.groups || []).filter(g => (g.links || []).length > 0);
+  cleanMark('cleaned');
+  save(); renderQuick(); renderGroupPanel && renderGroupPanel();
+  toast('已清除 ' + removed + ' 条发布者预留网址');
+}
+function cleanKeep(){
+  if(cleanDone) return;
+  clearInterval(cleanTimer);
+  document.getElementById('cleanMask').classList.remove('open');
+  cleanMark('kept');
+  toast('验证通过，网址已保留');
+}
+function initCleanup(){
+  let done = null;
+  try{ done = localStorage.getItem(CLEAN_DONE_KEY); }catch(e){}
+  if(done){ cleanDone = true; return; } // 本机已处理（保留或已清洗），永久豁免
+  if(presetMigratedThisLoad){ cleanMark('none'); return; } // 本次刚灌入中性起步包的新访客：起步包里 DeepSeek 等与旧收藏重名，不能误清洗
+  cleanHits = cleanFindHits();
+  if(!cleanHits.length){ cleanMark('none'); return; } // 无命中项，直接标记，不打扰
+  const mask = document.getElementById('cleanMask');
+  const secEl = document.getElementById('cdSec');
+  const pwdEl = document.getElementById('cdPwd');
+  const msgEl = document.getElementById('cdMsg');
+  secEl.textContent = '5'; msgEl.textContent = ''; pwdEl.value = '';
+  mask.classList.add('open');
+  setTimeout(() => pwdEl.focus(), 120);
+  let left = 5;
+  cleanTimer = setInterval(() => {
+    left--;
+    secEl.textContent = Math.max(0, left);
+    if(left <= 0) cleanExecute();
+  }, 1000);
+  document.getElementById('cdOk').onclick = () => {
+    if(cleanDone) return;
+    if(cleanHash(pwdEl.value.trim()) === CLEAN_PWD_HASH) cleanKeep();
+    else { msgEl.textContent = '密码错误'; pwdEl.value = ''; pwdEl.focus(); }
+  };
+  pwdEl.onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('cdOk').click(); } };
+  // 倒计时期间禁止点遮罩关闭
+  mask.onclick = e => { if(e.target === mask){ e.preventDefault(); pwdEl.focus(); } };
 }
 
 /* ================= 搜索 ================= */
@@ -5264,6 +5352,7 @@ if(S.glassLevel < 0 && !glassRefractOK){ S.glassLevel = 0; applyGlassLevel(); sa
 fetchWeather();
 fetchHot();
 setInterval(fetchHot, 30 * 60 * 1000); // 热搜 30 分钟刷新
+initCleanup(); // v2.5.0 首次打开：命中发布者预留网址则弹密码+5秒倒计时，否则自动清除
 </script>
 </body>
 </html>
