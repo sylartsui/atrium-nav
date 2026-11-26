@@ -2453,21 +2453,27 @@ function siteKey(url){ // 同一网站归一化：去 www、忽略参数与锚�
     return u.hostname.toLowerCase().replace(/^www\./, '') + (u.pathname.replace(/\/+$/, '') || '/');
   }catch(e){ return String(url||'').trim().toLowerCase(); }
 }
+function iconRank(l){ // 图标可信度：自定义/已落盘 Logo > 外链 favicon > 无图标/首字
+  if(l.icon === 'letter' || l.letter) return 0;
+  if(!l.icon) return 1;
+  const data = /^data:image\//i.test(l.icon);
+  if(l.custom) return 4;
+  return data ? 3 : 2;
+}
 function topLinks(){
-  // 同一网站只显示一个图标：代表条目取「网址导航（分组面板）里先出现的那条」，
-  // 与用户实际看到的收藏图标一致；访问量只决定站点在任务栏的排序，不再决定用哪条图标。
-  // 若先出现的那条没有图标，而后面的收藏有已落盘/自定义图标，则用有图标的那条（有收藏的用收藏的）。
+  // 同一网站只显示一个图标：代表条目优先取「真正有 Logo 的收藏」——
+  // 自定义上传/已落盘的彩色图标优先于外链 favicon（外链常返回灰底 E 占位图），同级才取网址导航里先出现的那条。
+  // 访问量只决定站点在任务栏的排序，不再决定用哪条图标。
   const groups = new Map();
   allLinks().forEach((l, i) => {
     const k = siteKey(l.url);
     const v = S.visits[l.url] || 0;
+    const q = iconRank(l);
     const g = groups.get(k);
-    if(!g){ groups.set(k, { link: l, total: v, first: i }); }
+    if(!g){ groups.set(k, { link: l, rank: q, repOrder: i, total: v, first: i }); }
     else{
       g.total += v;
-      const curUsable = !!(g.link.icon && g.link.icon !== 'letter' && !g.link.letter);
-      const newUsable = !!(l.icon && l.icon !== 'letter' && !l.letter);
-      if(!curUsable && newUsable) g.link = l;
+      if(q > g.rank || (q === g.rank && i < g.repOrder)){ g.link = l; g.rank = q; g.repOrder = i; }
     }
   });
   return [...groups.values()]
