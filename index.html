@@ -2454,20 +2454,24 @@ function siteKey(url){ // 同一网站归一化：去 www、忽略参数与锚�
   }catch(e){ return String(url||'').trim().toLowerCase(); }
 }
 function topLinks(){
-  // 同一网站只显示一个图标：按 siteKey 归并，组内总访问量排序，代表条目取组内访问最高的那个
+  // 同一网站只显示一个图标：代表条目取「网址导航（分组面板）里先出现的那条」，
+  // 与用户实际看到的收藏图标一致；访问量只决定站点在任务栏的排序，不再决定用哪条图标。
+  // 若先出现的那条没有图标，而后面的收藏有已落盘/自定义图标，则用有图标的那条（有收藏的用收藏的）。
   const groups = new Map();
   allLinks().forEach((l, i) => {
     const k = siteKey(l.url);
     const v = S.visits[l.url] || 0;
     const g = groups.get(k);
-    if(!g){ groups.set(k, { link: l, top: v, total: v, order: i }); }
+    if(!g){ groups.set(k, { link: l, total: v, first: i }); }
     else{
       g.total += v;
-      if(v > g.top){ g.link = l; g.top = v; g.order = i; }
+      const curUsable = !!(g.link.icon && g.link.icon !== 'letter' && !g.link.letter);
+      const newUsable = !!(l.icon && l.icon !== 'letter' && !l.letter);
+      if(!curUsable && newUsable) g.link = l;
     }
   });
   return [...groups.values()]
-    .sort((a,b) => (b.total - a.total) || (a.order - b.order))
+    .sort((a,b) => (b.total - a.total) || (a.first - b.first))
     .slice(0, Math.max(1, Math.min(20, S.iconCount)))
     .map(g => g.link);
 }
