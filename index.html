@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v2.6.0</title>
+<title>Atrium · 导航 v2.6.1</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -1607,7 +1607,7 @@ body.ink-dark #wxPanel .wx7-handle:hover .ln{background:rgba(17,19,23,.85)}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '2.6.0';
+const APP_VER = '2.6.1';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -1957,7 +1957,21 @@ document.getElementById('fileInput').addEventListener('change', e => {
   e.target.value = '';
 });
 addEventListener('dragover', e => e.preventDefault());
-addEventListener('drop', e => { e.preventDefault(); if(e.dataTransfer.files[0]) useCustomWall(e.dataTransfer.files[0]); });
+// 只允许把「外部图片文件」拖进页面设为壁纸；页面内部元素（网址图标等）的原生拖放一律忽略，
+// 避免拖动图标里的图片时浏览器把它当文件拖入、出现加号光标并把壁纸改成该图标图片
+addEventListener('dragstart', e => {
+  const t = e.target;
+  if(t && (t.closest?.('img') || t.tagName === 'IMG')){ e.preventDefault(); }
+}, true);
+addEventListener('drop', e => {
+  e.preventDefault();
+  const dt = e.dataTransfer;
+  if(!dt) return;
+  // 页面内元素拖放：dataTransfer 里通常带 text/html 或 text/uri-list 且无真实文件名，直接忽略
+  if([...(dt.types||[])].includes('text/html') && !(dt.files[0]?.name)) return;
+  const f = dt.files[0];
+  if(f && /^image\//.test(f.type)) useCustomWall(f);
+});
 addEventListener('paste', e => {
   const it = [...(e.clipboardData?.items||[])].find(i => i.type.startsWith('image/'));
   if(it) useCustomWall(it.getAsFile());
@@ -2515,10 +2529,10 @@ function faviconEl(link, cls){
     return `<span class="${cls}">${esc((link.name||'?')[0]||'?')}</span>`;
   }
   if(link.icon){
-    return `<img class="${cls}" src="${esc(link.icon)}"
+    return `<img class="${cls}" draggable="false" src="${esc(link.icon)}"
       data-fb="${esc(host)}" data-nm="${esc(link.name)}" onerror="faviconFallback(this)">`;
   }
-  return `<img class="${cls}" src="https://api.iowen.cn/favicon/${esc(host)}.png"
+  return `<img class="${cls}" draggable="false" src="https://api.iowen.cn/favicon/${esc(host)}.png"
     data-fb="${esc(host)}" data-nm="${esc(link.name)}"
     onerror="faviconFallback(this)">`;
 }
