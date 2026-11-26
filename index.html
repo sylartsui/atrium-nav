@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v2.6.2</title>
+<title>Atrium · 导航 v2.6.3</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -1607,7 +1607,7 @@ body.ink-dark #wxPanel .wx7-handle:hover .ln{background:rgba(17,19,23,.85)}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '2.6.2';
+const APP_VER = '2.6.3';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -2447,15 +2447,56 @@ function recordVisit(url){
   save();
   renderBarIcons();
 }
+function siteKey(url){ // 同一网站归一化：去 www、忽略参数与锚点，保留主机名+路径
+  try{
+    const u = new URL(url);
+    return u.hostname.toLowerCase().replace(/^www\./, '') + (u.pathname.replace(/\/+$/, '') || '/');
+  }catch(e){ return String(url||'').trim().toLowerCase(); }
+}
 function topLinks(){
-  const links = allLinks();
-  const order = new Map(links.map((l,i) => [l.url, i]));
-  return links.sort((a,b) =>
-    (S.visits[b.url]||0) - (S.visits[a.url]||0) || order.get(a.url) - order.get(b.url)
-  ).slice(0, Math.max(1, Math.min(20, S.iconCount)));
+  // 同一网站只显示一个图标：按 siteKey 归并，组内总访问量排序，代表条目取组内访问最高的那个
+  const groups = new Map();
+  allLinks().forEach((l, i) => {
+    const k = siteKey(l.url);
+    const v = S.visits[l.url] || 0;
+    const g = groups.get(k);
+    if(!g){ groups.set(k, { link: l, top: v, total: v, order: i }); }
+    else{
+      g.total += v;
+      if(v > g.top){ g.link = l; g.top = v; g.order = i; }
+    }
+  });
+  return [...groups.values()]
+    .sort((a,b) => (b.total - a.total) || (a.order - b.order))
+    .slice(0, Math.max(1, Math.min(20, S.iconCount)))
+    .map(g => g.link);
 }
 /* ---------- 图标落盘工具：外网图片转 base64 存数据，离线可用 ---------- */
-function grabIconDataUrl(src){ // 成功返回 PNG dataURL，失败返回 null（调用方降级存原 URL）
+const PLACEHOLDER_ICON = '__PLACEHOLDER__';
+function isPlaceholderCtx(x, size){ // 识别 favicon 服务返回的灰阶默认图（白底灰字/灰色地球），避免被当成真 Logo 落盘
+  try{
+    const d = x.getImageData(0, 0, size, size).data;
+    let gray = 0, opaque = 0, chromaMax = 0;
+    for(let i = 0; i < d.length; i += 4){
+      const r = d[i], g = d[i+1], b = d[i+2], a = d[i+3];
+      if(a < 24) continue;
+      opaque++;
+      const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+      if(chroma > chromaMax) chromaMax = chroma;
+      if(chroma < 12) gray++;
+    }
+    return opaque > 0 && gray / opaque > 0.96 && chromaMax < 40;
+  }catch(e){ return false; } // 画布被污染 → 不误判
+}
+function isPlaceholderImg(img){ // 渲染阶段检测（同源/dataURL 可采样；跨域图跳过，不误判）
+  try{
+    const c = document.createElement('canvas'); c.width = 32; c.height = 32;
+    const x = c.getContext('2d', { willReadFrequently: true });
+    x.drawImage(img, 0, 0, 32, 32);
+    return isPlaceholderCtx(x, 32);
+  }catch(e){ return false; }
+}
+function grabIconDataUrl(src){ // 成功返回 PNG dataURL；占位图返回 PLACEHOLDER_ICON；失败返回 null
   return new Promise(resolve => {
     let over = false;
     const timer = setTimeout(() => { if(!over){ over = true; resolve(null); } }, 8000);
@@ -2465,9 +2506,10 @@ function grabIconDataUrl(src){ // 成功返回 PNG dataURL，失败返回 null�
       if(over) return; over = true; clearTimeout(timer);
       try{
         const c = document.createElement('canvas'); c.width = 128; c.height = 128;
-        const x = c.getContext('2d');
+        const x = c.getContext('2d', { willReadFrequently: true });
         const s = Math.max(128 / img.width, 128 / img.height);
         x.drawImage(img, (128 - img.width * s) / 2, (128 - img.height * s) / 2, img.width * s, img.height * s);
+        if(isPlaceholderCtx(x, 128)){ resolve(PLACEHOLDER_ICON); return; } // 默认图 → 换下一个源
         resolve(c.toDataURL('image/png'));
       }catch(e){ resolve(null); } // 画布污染等异常 → 降级
     };
@@ -2514,7 +2556,10 @@ function fetchIconForLink(l){ // 批量获取：成功 resolve('logo')，全源�
       const probe = new Image();
       probe.onload = () => {
         if(done) return; done = true; clearTimeout(timer);
-        grabIconDataUrl(srcs[i]).then(b64 => { l.icon = b64 || srcs[i]; l.letter = false; l.custom = false; res('logo'); });
+        grabIconDataUrl(srcs[i]).then(b64 => {
+          if(b64 === PLACEHOLDER_ICON){ trySrc(i + 1); return; } // 灰阶默认图 → 换下一个源
+          l.icon = b64 || srcs[i]; l.letter = false; l.custom = false; res('logo');
+        });
       };
       probe.onerror = () => { if(done) return; done = true; clearTimeout(timer); trySrc(i + 1); };
       probe.src = srcs[i];
@@ -2528,20 +2573,35 @@ function faviconEl(link, cls){
   if(link.icon === 'letter'){   // 首字图标（获取 Logo 失败时自动落盘）
     return `<span class="${cls}">${esc((link.name||'?')[0]||'?')}</span>`;
   }
+  const check = link.custom ? '' : ' onload="faviconCheck(this)"'; // 自定义上传图标不检测，避免误伤
+  const attrs = `class="${cls}" draggable="false" data-fb="${esc(host)}" data-nm="${esc(link.name)}" data-stage="0"${check} onerror="faviconFallback(this)"`;
   if(link.icon){
-    return `<img class="${cls}" draggable="false" src="${esc(link.icon)}"
-      data-fb="${esc(host)}" data-nm="${esc(link.name)}" onerror="faviconFallback(this)">`;
+    return `<img ${attrs} src="${esc(link.icon)}">`;
   }
-  return `<img class="${cls}" draggable="false" src="https://api.iowen.cn/favicon/${esc(host)}.png"
-    data-fb="${esc(host)}" data-nm="${esc(link.name)}"
-    onerror="faviconFallback(this)">`;
+  return `<img ${attrs} src="https://api.iowen.cn/favicon/${esc(host)}.png">`;
 }
-window.faviconFallback = function(img){
-  if(img.dataset.stage !== '1'){
-    img.dataset.stage = '1';
-    img.src = `https://www.google.com/s2/favicons?sz=64&domain=${img.dataset.fb}`;
+function faviconSources(host){ // 三源兜底，与批量获取顺序一致
+  return [
+    `https://icon.horse/icon/${host}`,
+    `https://www.google.com/s2/favicons?sz=64&domain=${host}`,
+    `https://api.iowen.cn/favicon/${host}.png`,
+  ];
+}
+window.faviconCheck = function(img){ // 加载成功但为灰阶默认图 → 换源
+  if(isPlaceholderImg(img)) window.faviconFallback(img);
+};
+window.faviconFallback = function(img){ // 加载失败或占位图 → 依次尝试下一源，全失败落首字
+  const host = img.dataset.fb || '';
+  const ch = (img.dataset.nm || '?')[0] || '?';
+  const srcs = host ? faviconSources(host) : [];
+  let i = parseInt(img.dataset.stage || '0', 10);
+  const cur = img.src;
+  while(i < srcs.length && srcs[i] === cur) i++; // 跳过已尝试过的源，避免死循环
+  if(i < srcs.length){
+    img.dataset.stage = String(i + 1);
+    img.src = srcs[i];
   }else{
-    img.outerHTML = `<span class="${img.className}">${esc((img.dataset.nm||'?')[0])}</span>`;
+    img.outerHTML = `<span class="${img.className}">${esc(ch)}</span>`;
   }
 };
 function esc(s){
@@ -3183,6 +3243,7 @@ iconPop.addEventListener('click', e => {
       probe.onload = () => {
         if(done) return; done = true; clearTimeout(timer);
         grabIconDataUrl(srcs[i]).then(b64 => { // 转存 base64 落盘；失败降级在线引用
+          if(b64 === PLACEHOLDER_ICON){ trySrc(i + 1); return; } // 灰阶默认图 → 换下一个源
           l.icon = b64 || srcs[i]; l.letter = false; l.custom = false;
           renderGroupPanel(); save(); renderBarIcons(); closeIconPop();
           toast(b64 ? '已获取 Logo（已转存本地，离线可用）' : '已获取网站 Logo（在线引用）');
