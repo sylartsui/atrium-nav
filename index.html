@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atrium · 导航 v2.5.0</title>
+<title>Atrium · 导航 v2.5.1</title>
 <style>
 :root{
   --accent:#0A84FF;
@@ -830,36 +830,6 @@ body.ink-dark #wxPanel .wx7-handle:hover .ln{background:rgba(17,19,23,.85)}
   padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;color:var(--ink-main);
   display:none;animation:toastin .3s var(--ease-pop);
 }
-/* ===== v2.5.0 强制清洗密码弹窗（置顶、无法点击背景关闭） ===== */
-#cleanMask{
-  position:fixed;inset:0;z-index:1000;display:none;
-  align-items:center;justify-content:center;background:rgba(0,0,0,.42);
-  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
-}
-#cleanMask.open{display:flex;animation:fadein .25s ease}
-#cleanBox{
-  width:min(430px,calc(100vw - 32px));padding:26px 26px 22px;text-align:center;
-  border-radius:24px;color:var(--ink-main);box-shadow:0 24px 70px rgba(0,0,0,.44);
-}
-#cleanBox .cb-icon{font-size:30px;line-height:1;margin-bottom:8px}
-#cleanBox .cb-title{font-size:19px;font-weight:700;margin-bottom:10px}
-#cleanBox .cb-desc{font-size:13px;line-height:1.7;color:var(--ink-sub);font-weight:500;margin-bottom:18px}
-#cleanBox .cb-sec{color:#FF9F0A;font-size:16px;font-weight:800;padding:0 2px}
-#cleanBox .cb-row{display:flex;gap:8px}
-#cleanBox .cb-row input{
-  flex:1;min-width:0;height:42px;padding:0 14px;border-radius:14px;font-size:16px;letter-spacing:2px;
-  border:1px solid var(--glass-bd);background:rgba(127,127,127,.14);color:var(--ink-main);outline:none;
-}
-#cleanBox .cb-row input:focus{border-color:var(--accent)}
-#cleanBox .cb-row input::placeholder{color:var(--ink-weak);letter-spacing:0;font-size:13px}
-#cleanBox .cb-row button{
-  height:42px;padding:0 20px;border:none;border-radius:14px;background:var(--accent);color:#fff;
-  font-size:14px;font-weight:700;cursor:pointer;transition:transform .15s var(--ease-pop);
-}
-#cleanBox .cb-row button:hover{transform:scale(1.04)}
-#cleanBox .cb-row button:active{transform:scale(.97)}
-#cleanBox .cb-msg{min-height:18px;margin-top:10px;font-size:12px;font-weight:600;color:#FF453A}
-@keyframes fadein{from{opacity:0}to{opacity:1}}
 @media (max-width:760px){
   #weatherBtn .wx-c{display:none}
   #searchWrap{top:12%}
@@ -1611,20 +1581,6 @@ body.ink-dark #wxPanel .wx7-handle:hover .ln{background:rgba(17,19,23,.85)}
 
 <div id="toast" class="glass text-halo"></div>
 
-<!-- v2.5.0 强制清洗密码弹窗 -->
-<div id="cleanMask">
-  <div id="cleanBox" class="glass" role="dialog" aria-modal="true" aria-label="网址清洗确认">
-    <div class="cb-icon">🔒</div>
-    <div class="cb-title">发现发布者预留网址</div>
-    <div class="cb-desc">检测到本地存有与发布者预设相同的网址。若为本人使用，请输入密码保留；<b id="cdSec" class="cb-sec">5</b> 秒内无有效密码将自动清除这些网址。</div>
-    <div class="cb-row">
-      <input id="cdPwd" type="password" inputmode="numeric" maxlength="12" placeholder="输入密码" autocomplete="off">
-      <button id="cdOk">确认</button>
-    </div>
-    <div id="cdMsg" class="cb-msg"></div>
-  </div>
-</div>
-
 <input type="file" id="iconInput" accept="image/*,.ico" style="display:none">
 <div id="iconPop" class="glass"></div>
 <div id="movePop" class="glass"></div>
@@ -1651,7 +1607,7 @@ body.ink-dark #wxPanel .wx7-handle:hover .ln{background:rgba(17,19,23,.85)}
 /* ================= 数据 ================= */
 const LS_KEY = 'atrium-nav-v1';
 /* 版本定版：APP_VER 随功能迭代递增（语义化版本），用于配置导出识别与迁移兼容 */
-const APP_VER = '2.5.0';
+const APP_VER = '2.5.1';
 const WALLS = [
   {id:'flow',    name:'流光', file:'wallpapers/flow.jpg'},
   {id:'paper',   name:'纸境', file:'wallpapers/paper.jpg'},
@@ -1698,28 +1654,8 @@ const DEFAULT_GROUPS = PRESET_DATA.map((g, i) => ({
   id:'pg'+(i+1), name:g[0],
   links:g[1].map((l, j) => ({id:'pg'+(i+1)+'_'+(j+1), name:l[0], url:l[1]})),
 }));
-/* ================= v2.5.0 强制清洗：清除本机里残留的发布者收藏 =================
-   背景：v2.4.1 前源码内置过发布者的百度「我的常用」130 条（含内网地址），老访客浏览器
-   localStorage 里可能仍留着它们。这些网址的「名称+地址」指纹预先算好内嵌在下方（不含明文）。
-   规则：仅 v2.5.0 首次打开且检测到命中项时，弹出密码框 + 5 秒倒计时；
-         - 输对密码 5617（哈希比对）→ 本机永久豁免（写标记 CLEAN_DONE_KEY='kept'），不删任何数据；
-         - 5 秒内无密码 / 密码错 → 删除所有命中链接（倒序删，避免索引错位），空分组一并清理；
-         两种结局都写 CLEAN_DONE_KEY 标记，之后永不再触发。 */
-const CLEAN_DONE_KEY = 'atrium-nav-cleanup-250-done';
-const CLEAN_PWD_HASH = '1ixupuy'; // = cleanHash('5617')，明文密码不落源码
-const CLEAN_HASHES = new Set('1n2ww6u yji04l 1qb0c6u dogrkx 1bsp991 a2thin 8x1ggs qbsfkw 1ap0er7 1qx1hjb 1effjjs pip39l mnweck 17w20qq 61lkl7 1rz6ij0 txlfh5 1l5sfkv hrhkt plgcao 1cv7gqm 14ci1vg 1oon2q5 6jup4i susyiy 1u4gyjt 9190te 1br26zs xbvvvb 10rbvw2 dcojyt 2d8d1g 1md3b26 5m2e81 s9i3av xz7jq5 1aouak5 17n0c5w 1dnfqpp 1feuizj zksve9 q8i1wk 1l2yjcg psimt8 1j7765h 1hq70sa 18ch1a2 1888qv4 1nvt8q 18edfqx 17d4kef 6g2m43 kh87as 1fqixdx k18oev 1a7894b 1kownlx 10u1shw jjm7hn j5l3c3 wqms7a 1gwpyt3 mgq0mx fevvof 13iigoa vwjfly 1b4kye5 664t2k 18cctq9 auzbcv 1qva4g8 1t9u84l 2b4zfv jvg169 1pc96ho cclww5 of22zi 19fx1na 1b9p9t2 bi1m21 1vsi26m 1on8y9d xmw4n4 1q712s3 7uih28 1j606j9 m95m65 1xz413v vw0ryj 1nnhrig z1j4xj 6qczs6 40twk 198dubh 2l9936 1cnwh62 qx6yo9 1ho1qc9 emxr1z e6o0o3 yox70k dhae98 up5sey 6b5ur1 9vuwxy 1n0pwvb ehbhi7 cewwp1 ntx7qt gdcjel 19m9xyc 1j999cw 13ixs5o 1sma191 1os7bd5 7qqp8f 1wzn2ir ymwtol p13y36 p0mraz vb4j5g 1kmxst4 1xmg63h li3tpz wst7td oov8ur 8qs789 xb3dor gaqt73 1fvku4u'.split(' '));
-/* 追加的纯地址清洗目标（仅给地址、无名称）：花生壳穿透地址 tunnel.example.test:26911。
-   收录 http/https × 带/不带尾斜杠 4 种写法的地址指纹，命中任一即删；明文不落源码。 */
-const CLEAN_URL_HASHES = new Set('l1fldc 14096yn 5tn181 1gq9490'.split(' '));
-function cleanHash(str){
-  let h = 0x811c9dc5;
-  for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
-  return (h>>>0).toString(36);
-}
-function cleanKeyOf(name,url){ return cleanHash(String(name) + '\u0000' + String(url)); }
 let lastSavedRaw = null; // 启动时读到的原始数据字符串；save() 据此把上一版留底到 -prev，防覆盖型丢失（须在 loadState 调用前声明）
 let S = loadState();
-let presetMigratedThisLoad = false; // 本次加载是否刚跑过预设迁移（新访客/全新初始化标志，供 v2.5.0 清洗跳过）
 /* 预设迁移：首次加载时用中性基础网址起步包初始化分组，旧分组自动备份到 localStorage。
    ID 沿用历史值 baidu-changyong-20261110 不变——老用户配置里 presetApplied 存的就是它，
    改 ID 会让老配置在新环境下误判为「未迁移」，叠加 preset-done 被清时可能覆盖用户自己的分组。 */
@@ -1731,11 +1667,21 @@ if(S.presetApplied !== PRESET_ID && !localStorage.getItem('atrium-nav-preset-don
   try{ localStorage.setItem('atrium-nav-groups-backup', JSON.stringify({date:new Date().toISOString(), groups:S.groups})); }catch(e){}
   S.groups = JSON.parse(JSON.stringify(DEFAULT_GROUPS));
   S.presetApplied = PRESET_ID;
-  presetMigratedThisLoad = true;
   save();
   setTimeout(() => toast('已载入基础网址起步包，原分组已自动备份'), 600);
 }
 try{ localStorage.setItem('atrium-nav-preset-done','1'); }catch(e){}
+/* 首次打开时无条件把分组重置为中性默认起步包（19 条公开网址）。
+   目的：清掉老访客浏览器 localStorage 里残留的发布者私人收藏（内网地址、公司后台等）。
+   一次性标记 RESET_KEY，重置后永不重来；用户之后可正常增删改并保存自己的分组。 */
+const RESET_KEY = 'atrium-nav-reset-default-260';
+if(!localStorage.getItem(RESET_KEY)){
+  try{ localStorage.setItem('atrium-nav-groups-backup', JSON.stringify({date:new Date().toISOString(), groups:S.groups})); }catch(e){}
+  S.groups = JSON.parse(JSON.stringify(DEFAULT_GROUPS));
+  save();
+  try{ localStorage.setItem(RESET_KEY,'1'); }catch(e){}
+  setTimeout(() => toast('已重置为默认基础网址（19 条），原分组已自动备份'), 900);
+}
 function loadState(){
   let raw = null;
   try{ raw = localStorage.getItem(LS_KEY); }catch(e){}
@@ -2024,77 +1970,6 @@ function toast(msg){
   t.textContent = msg; t.style.display = 'block';
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.style.display = 'none', 2200);
-}
-
-/* ================= v2.5.0 强制清洗流程 ================= */
-let cleanTimer = null, cleanHits = [], cleanDone = false;
-function cleanMark(result){
-  try{ localStorage.setItem(CLEAN_DONE_KEY, result); }catch(e){}
-  cleanDone = true;
-}
-function cleanFindHits(){
-  const hits = [];
-  (S.groups || []).forEach((g, gi) => {
-    (g.links || []).forEach((l, li) => {
-      if(CLEAN_HASHES.has(cleanKeyOf(l.name, l.url)) || CLEAN_URL_HASHES.has(cleanHash(String(l.url || '')))) hits.push({gi, li});
-    });
-  });
-  return hits;
-}
-function cleanExecute(){
-  if(cleanDone) return;
-  clearInterval(cleanTimer);
-  document.getElementById('cleanMask').classList.remove('open');
-  // 倒序删除，避免索引前移错位
-  const byGroup = {};
-  cleanHits.forEach(h => { (byGroup[h.gi] = byGroup[h.gi] || []).push(h.li); });
-  Object.keys(byGroup).forEach(gi => {
-    const idxs = byGroup[gi].slice().sort((a,b) => b - a);
-    const links = S.groups[gi].links;
-    idxs.forEach(li => links.splice(li, 1));
-  });
-  const removed = cleanHits.length;
-  // 清理变空的分组
-  S.groups = (S.groups || []).filter(g => (g.links || []).length > 0);
-  cleanMark('cleaned');
-  save(); renderQuick(); renderGroupPanel && renderGroupPanel();
-  toast('已清除 ' + removed + ' 条发布者预留网址');
-}
-function cleanKeep(){
-  if(cleanDone) return;
-  clearInterval(cleanTimer);
-  document.getElementById('cleanMask').classList.remove('open');
-  cleanMark('kept');
-  toast('验证通过，网址已保留');
-}
-function initCleanup(){
-  let done = null;
-  try{ done = localStorage.getItem(CLEAN_DONE_KEY); }catch(e){}
-  if(done){ cleanDone = true; return; } // 本机已处理（保留或已清洗），永久豁免
-  if(presetMigratedThisLoad){ cleanMark('none'); return; } // 本次刚灌入中性起步包的新访客：起步包里 DeepSeek 等与旧收藏重名，不能误清洗
-  cleanHits = cleanFindHits();
-  if(!cleanHits.length){ cleanMark('none'); return; } // 无命中项，直接标记，不打扰
-  const mask = document.getElementById('cleanMask');
-  const secEl = document.getElementById('cdSec');
-  const pwdEl = document.getElementById('cdPwd');
-  const msgEl = document.getElementById('cdMsg');
-  secEl.textContent = '5'; msgEl.textContent = ''; pwdEl.value = '';
-  mask.classList.add('open');
-  setTimeout(() => pwdEl.focus(), 120);
-  let left = 5;
-  cleanTimer = setInterval(() => {
-    left--;
-    secEl.textContent = Math.max(0, left);
-    if(left <= 0) cleanExecute();
-  }, 1000);
-  document.getElementById('cdOk').onclick = () => {
-    if(cleanDone) return;
-    if(cleanHash(pwdEl.value.trim()) === CLEAN_PWD_HASH) cleanKeep();
-    else { msgEl.textContent = '密码错误'; pwdEl.value = ''; pwdEl.focus(); }
-  };
-  pwdEl.onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('cdOk').click(); } };
-  // 倒计时期间禁止点遮罩关闭
-  mask.onclick = e => { if(e.target === mask){ e.preventDefault(); pwdEl.focus(); } };
 }
 
 /* ================= 搜索 ================= */
@@ -5352,7 +5227,6 @@ if(S.glassLevel < 0 && !glassRefractOK){ S.glassLevel = 0; applyGlassLevel(); sa
 fetchWeather();
 fetchHot();
 setInterval(fetchHot, 30 * 60 * 1000); // 热搜 30 分钟刷新
-initCleanup(); // v2.5.0 首次打开：命中发布者预留网址则弹密码+5秒倒计时，否则自动清除
 </script>
 </body>
 </html>
